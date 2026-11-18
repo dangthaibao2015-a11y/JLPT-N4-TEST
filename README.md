@@ -7,21 +7,23 @@ Trang web cho người học: xem đề theo cấp, thi từng đề, trộn nhi
 ```
 index.html          Toàn bộ trang web
 json/               Mỗi đề là một tệp .json
-  _danh-sach.js     Danh sách đề do trang quản lý tạo ra (dự phòng khi GitHub không trả danh sách)
+  _danh-sach.js     Danh sách đề, tạo ra từ chính trang web (xem bên dưới)
 README.md
 ```
 
-## Thêm đề (dành cho người đăng đề)
+## Thêm đề mới (người đăng đề)
 
 1. Bỏ tệp `.json` của đề vào thư mục `json/`.
-2. Commit và push lên GitHub, đợi 1 đến 2 phút. Trang người học tự đọc thư mục `json/` của repo nên đề mới tự hiện.
-3. (Nên làm) Cập nhật `json/_danh-sach.js` để trang vẫn đủ đề khi GitHub từ chối trả danh sách:
-   - Mở trang bằng địa chỉ có đuôi `#quan-ly`, ví dụ `index.html#quan-ly` hoặc `.../JLPT-N4-TEST/#quan-ly`.
-   - Bấm **Chọn thư mục json**, chọn thư mục `json` trong dự án, bấm Cho phép (cần Chrome hoặc Edge).
-   - Web quét thư mục, ghi lại `json/_danh-sach.js` và báo các tệp bị lỗi (nếu có).
-   - Commit và push thêm tệp `_danh-sach.js`.
+2. Bấm nút **Quản lý** ở góc trên của trang. Nhập **key admin** (đặt ở dòng `ADMIN_KEY` đầu phần script) rồi bấm Xác nhận.
+3. Bước 1: bấm **Chọn thư mục json**, chọn thư mục `json` trong dự án (hoặc cả thư mục dự án) rồi cho phép. Web nhớ thư mục này cho các lần sau, lần sau chỉ cần bấm **Dùng lại thư mục**.
+4. Bước 2: bấm **Tạo và lưu vào thư mục**. Web lưu thẳng `json/_danh-sach.js` vào thư mục.
+5. Commit và push.
 
-Trang `#quan-ly` không có nút nào dẫn tới và chỉ thao tác trên thư mục ở máy bạn, không thay đổi được trang web trên mạng.
+Chỉ Chrome và Edge (máy tính) lưu thẳng được. Trình duyệt khác sẽ tải `_danh-sach.js` về để bạn tự chép vào `json/`.
+
+Người học luôn đọc đề từ `json/_danh-sach.js`, nên **thêm tệp .json mà chưa tạo lại danh sách thì người học chưa thấy đề mới**.
+
+Người học cũng thấy nút Quản lý nhưng không có key thì không vào được. Key nằm ngay trong mã nguồn nên chỉ để người học không bấm nhầm, không phải khóa bảo mật. Khu quản lý không sửa được gì trên web, chỉ tạo ra tệp danh sách trong thư mục ở máy bạn.
 
 ## Định dạng tệp JSON
 
@@ -48,14 +50,8 @@ Trang `#quan-ly` không có nút nào dẫn tới và chỉ thao tác trên thư
 - Các câu cùng một bài đọc dùng chung `group` và `passage` để luôn đi liền nhau.
 - Từ gạch chân viết trong hai dấu gạch dưới, ví dụ `__映画__`.
 - Đặt tên đề dạng `N4 T7/2021` để trang tự xếp theo cấp, năm, tháng.
-- Tệp sai định dạng sẽ không hiện cho người học. Trang `#quan-ly` liệt kê các tệp lỗi và lý do.
+- Tệp sai định dạng sẽ không có trong danh sách. Trang `#quan-ly` liệt kê các tệp lỗi và lý do.
 
 ## Cách trang đọc danh sách đề
 
-| Cách mở trang | Cách đọc thư mục json |
-|---|---|
-| GitHub Pages | Hỏi GitHub danh sách tệp trong `json/`; nếu không được thì đọc `json/index.json`, rồi `json/_danh-sach.js` |
-| Live Server hoặc máy chủ web khác | Đọc danh sách thư mục của máy chủ |
-| Nhấp đúp `index.html` | Đọc `json/_danh-sach.js` |
-
-GitHub giới hạn khoảng 60 lượt hỏi mỗi giờ cho mỗi địa chỉ mạng. Khi vượt, người học vẫn thấy đủ đề trong lần cập nhật gần nhất của `_danh-sach.js`.
+Thứ tự thử: danh sách thư mục của máy chủ (Live Server, `python -m http.server`) → `json/_danh-sach.js` → hỏi GitHub (chỉ khi không có tệp danh sách) → `json/index.json`.

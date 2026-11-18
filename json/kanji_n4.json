@@ -1,0 +1,26 @@
+{
+  "name": "KANJI-N4-01",
+  "level": "N4",
+  "questions": [
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","instruction":"＿＿＿のことばはひらがなでどうかきますか。1・2・3・4からいちばんいいものをひとつえらんでください。","text":"この へんに __食料品__を 売って いる 店は ありませんか。","choices":["しょくりょうひん","しょっりょうひん","しょくりょうびん","しょっりょうびん"],"answer":1,"explanation":"食料品 = しょくりょうひん (thực phẩm); âm cuối là ひん, không biến thành ぴん."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"わたしの 言う ことを __最後__まで 聞いて ください。","choices":["さいぞ","さいしょ","さいごう","さいご"],"answer":4,"explanation":"最後 = さいご (cuối cùng); phân biệt với 最初 (さいしょ: đầu tiên)."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"この __近所__には バスが 走って いません。","choices":["きんじょう","きんしょう","きんじょ","きんしょ"],"answer":3,"explanation":"近所 = きんじょ (khu vực lân cận); âm đục じょ, không có trường âm."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"ビールは 10本も あれば じゅうぶん __足りる__でしょう。","choices":["ありる","そりる","おりる","たりる"],"answer":4,"explanation":"足りる = たりる (đủ). 十分足りる = hoàn toàn đủ; 〜もあれば = chỉ cần có đến … (nhấn mạnh số nhiều)."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"__寒い__ 日は あたたかい りょうりが 食べたいです。","choices":["さむい","あつい","ぬるい","かたい"],"answer":1,"explanation":"寒い = さむい (lạnh về thời tiết); khác với 冷たい (lạnh khi chạm vào)."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"子どもが __安心__して 遊べる 公園が ほしい。","choices":["あんしん","あんでい","あんてい","あんじん"],"answer":1,"explanation":"安心 = あんしん (an tâm, yên tâm)."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"ふうとうに 84円 __切手__を はって、送って ください。","choices":["きいて","きって","きりて","きるて"],"answer":2,"explanation":"切手 = きって (tem thư); 切手を貼る = dán tem."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"お皿は __何枚__ ひつようですか。","choices":["なんぼん","なんさつ","なんまい","なんばい"],"answer":3,"explanation":"枚(まい) là lượng từ đếm vật mỏng, dẹt như đĩa, giấy, áo sơ mi, vé."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"かおを __洗って__から はを みがきます。","choices":["はらって","もどって","あらって","かえって"],"answer":3,"explanation":"洗う = あらう (rửa, giặt); 顔を洗う = rửa mặt."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"__急行__に のれば、夕方には 東京に 着きます。","choices":["きゅうこう","きゅうこ","きゅこ","きゅこう"],"answer":1,"explanation":"急行 = きゅうこう (tàu tốc hành); có trường âm ở cả hai âm: きゅう + こう."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"夜空に 星が __光って__ います。","choices":["さがって","かよって","ならって","ひかって"],"answer":4,"explanation":"光る = ひかる (tỏa sáng, nhóm 1), thể て: 光って (ひかって)."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"自分で 車を __運転__して、ほっかいどうを 旅行する 計画です。","choices":["うんでん","うんどん","うんとん","うんてん"],"answer":4,"explanation":"運転する = うんてんする (lái xe, vận hành phương tiện)."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"わたしは この へんの __地理__に 明るいです。","choices":["じいり","じり","ちり","ちいり"],"answer":3,"explanation":"地理 = ちり (địa lý); 〜に明るい = am hiểu, thông thạo về …"},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"むすこは __赤い__ ふくを きて いる。","choices":["さむい","あたたかい","あかい","すずしい"],"answer":3,"explanation":"赤い = あかい (đỏ); 服を着る = mặc quần áo."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"__重い__ にもつを 2かいに 運びました。","choices":["かるい","うすい","おもい","あつい"],"answer":3,"explanation":"重い = おもい (nặng), trái nghĩa với 軽い (かるい: nhẹ)."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"その いすを まえへ __押した__。","choices":["さした","かした","おした","けした"],"answer":3,"explanation":"押す = おす (đẩy), trái nghĩa với 引く (ひく: kéo)."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"妹は 母に __顔__が にて います。","choices":["がん","かお","がお","かん"],"answer":2,"explanation":"顔 = かお (khuôn mặt); 顔が似ている = nét mặt giống nhau."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"いしはらさんは __工場__で はたらいて います。","choices":["こうしょう","こうじょ","こうじょう","こうしょ"],"answer":3,"explanation":"工場 = こうじょう (nhà máy, xưởng); xưởng nhỏ thủ công có thể đọc là こうば."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"プレゼントを __紙__に つつみました。","choices":["いろ","あと","あじ","かみ"],"answer":4,"explanation":"紙 = かみ (giấy); 包む = つつむ (bọc, gói)."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題1","text":"その 試合は 土曜日の 午後に __予定__されて いる。","choices":["してい","しじょう","よじょう","よてい"],"answer":4,"explanation":"予定 = よてい (dự định, lên lịch); 予定される = được dự kiến."}
+  ]
+}

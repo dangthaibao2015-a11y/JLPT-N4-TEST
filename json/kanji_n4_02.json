@@ -1,0 +1,26 @@
+{
+  "name": "NGUPHAP-N4-01",
+  "level": "N4",
+  "questions": [
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","instruction":"（　　）になにをいれますか。1・2・3・4からいちばんいいものをひとつえらんでください。","text":"けさ 上野さんは（　　）して 会社に おくれました。","choices":["しょうたい","はんたい","ごちそう","ねぼう"],"answer":4,"explanation":"寝坊 (ねぼう) = ngủ quên, dậy muộn; 〜に遅れる = trễ cái gì."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"へやの（　　）を つけて、すずしく します。","choices":["どうぐ","でんとう","れいぼう","だんぼう"],"answer":3,"explanation":"冷房 (れいぼう) = máy lạnh, chế độ làm mát; đối lập với 暖房 (だんぼう) = sưởi ấm."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"その パソコンは どこか（　　）して いるのですか。","choices":["もんだい","にゅういん","びょうき","こしょう"],"answer":4,"explanation":"故障 (こしょう) = hỏng hóc, trục trặc; dùng cho máy móc, thiết bị."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"この 教室には 楽しい（　　）が たくさん あります。","choices":["ききとり","おもいで","うけつけ","おしいれ"],"answer":2,"explanation":"思い出 (おもいで) = kỷ niệm."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"かのじょは さっきから ずっと 泣いて いるが、（　　）が 分からない。","choices":["きかい","ばあい","しゅみ","りゆう"],"answer":4,"explanation":"理由 (りゆう) = lý do."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"わたしが 日本に 行った とき、やまださんが（　　）して くれた。","choices":["けんぶつ","あんない","よてい","うんどう"],"answer":2,"explanation":"案内 (あんない) = hướng dẫn, dẫn đường; 〜てくれる = ai đó làm gì cho mình."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"レストランの（　　）で 5,000円 はらいました。","choices":["ワープロ","スクリーン","レポート","レジ"],"answer":4,"explanation":"レジ = quầy thu ngân."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"わたしは あまり 泳げないので、いつも プールの（　　）方で 泳いで います。","choices":["すっぱい","せまい","すくない","あさい"],"answer":4,"explanation":"浅い (あさい) = nông, cạn."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"あにと せの たかさを（　　）。","choices":["つかまえました","くらべました","わかれました","まけました"],"answer":2,"explanation":"比べる (くらべる) = so sánh; 背の高さを比べる = so chiều cao."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"ゆうべ おそくまで おきて いたので、けさは（　　）。","choices":["さびしい","すごい","うるさい","ねむい"],"answer":4,"explanation":"眠い (ねむい) = buồn ngủ."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"（　　）して いた 本を なくして しまいました。","choices":["ひつように","ねっしんに","しんせつに","だいじに"],"answer":4,"explanation":"大事に (だいじに) = cẩn thận, quý trọng; 大事にする = trân trọng, giữ gìn."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"大切な 書類は（　　）な ところに しまって います。","choices":["にがて","あんぜん","ふくざつ","りっぱ"],"answer":2,"explanation":"安全 (あんぜん) = an toàn."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"この いしは（　　）ので なかなか われない。","choices":["めずらしい","あまい","かたい","うつくしい"],"answer":3,"explanation":"硬い/固い (かたい) = cứng; なかなか + phủ định = mãi mà không …"},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"先生の けっこんしきに（　　）を うけて います。","choices":["しょうち","しょうかい","しょうたい","しょうらい"],"answer":3,"explanation":"招待 (しょうたい) = lời mời; 招待を受ける = nhận được lời mời."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"わたしは アメリカで 5年間 日本語を 教えた（　　）が あります。","choices":["たのしみ","いなか","けいけん","おもて"],"answer":3,"explanation":"経験 (けいけん) = kinh nghiệm; 経験がある = có kinh nghiệm."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"わたしは きょう 5時に 友だちと あう（　　）が あります。","choices":["よやく","よしゅう","よほう","やくそく"],"answer":4,"explanation":"約束 (やくそく) = lời hẹn, cuộc hẹn; 約束がある = có hẹn."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"鈴木さんから ハワイ旅行の（　　）に Tシャツを もらった。","choices":["おみやげ","おしらせ","おみまい","おしゃべり"],"answer":1,"explanation":"お土産 (おみやげ) = quà lưu niệm."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"その しごとは（　　）わたしに やらせて ください。","choices":["たぶん","きゅうに","ぜひ","そんなに"],"answer":3,"explanation":"是非 (ぜひ) = nhất định; 〜させてください = xin hãy cho phép tôi làm."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"わたしの おとした コンタクトレンズを そこに いた 全員で（　　）くれました。","choices":["ひらいて","えらんで","さがして","まよって"],"answer":3,"explanation":"探す (さがす) = tìm, tìm kiếm; 〜てくれる = ai đó làm gì giúp mình."},
+    {"section":"A","sectionTitle":"文字・語彙","mondai":"問題3","text":"この たまねぎは（　　）きって ください。","choices":["ぬるく","こまかく","きびしく","せまく"],"answer":2,"explanation":"細かい (こまかい) = nhỏ, vụn; tính từ đuôi い đổi thành く khi bổ nghĩa cho động từ: 細かく切る = thái nhỏ."}
+  ]
+}

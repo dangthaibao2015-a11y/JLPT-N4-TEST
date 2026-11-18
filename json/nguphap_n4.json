@@ -1,0 +1,24 @@
+{
+  "name": "NGUPHAP-N4-02",
+  "level": "N4",
+  "questions": [
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","instruction":"（　　）に何を入れますか。1・2・3・4からいちばんいいものを一つえらんでください。","text":"A「あの 人の スピーチを どう 思いましたか。」B「（　　）理解できませんでした。」","choices":["そろそろ","かならず","だんだん","ぜんぜん"],"answer":4,"explanation":"全然 + phủ định = hoàn toàn không …"},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"うめは すでに 咲いた。（　　）さくらは まだ 咲いて いない。","choices":["だが","それに","だから","または"],"answer":1,"explanation":"だが = nhưng (liên từ chỉ quan hệ tương phản)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"子どもの ころは（　　）家族で 旅行に 行きました。","choices":["なかなか","あまり","よく","ぜんぜん"],"answer":3,"explanation":"よく = thường, hay (tần suất của hành động)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"遊園地に 行きたいが お金が ない。（　　）、遊びに 行く ひまも ない。","choices":["また","きっと","もっと","よく"],"answer":1,"explanation":"また = hơn nữa, lại còn (bổ sung thông tin tương đồng)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"わたしたちは よていより 1時間（　　）駅に 着きました。","choices":["何も","早く","ぜひ","かならず"],"answer":2,"explanation":"早く = sớm (về thời gian); khác với 速く (nhanh về tốc độ)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"この みちを 100メートルほど（　　）すすむと、右手に ゆうびんきょくが あります。","choices":["はっきり","なかなか","まっすぐ","すっかり"],"answer":3,"explanation":"真っ直ぐ進む = đi thẳng."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"おとしよりに ざせきを ゆずりました。（　　）、たいへん よろこんで くれました。","choices":["すると","でも","だが","なぜなら"],"answer":1,"explanation":"すると = thế là, ngay sau đó (sự việc xảy ra ngay sau hành động trước)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"ピアノの れんしゅうに（　　）に なりすぎて はいしゃの よやくを わすれて しまいました。","choices":["なかなか","はっきり","いっしょうけんめい","すっかり"],"answer":3,"explanation":"一生懸命になる = tập trung cao độ, dốc hết sức vào việc gì."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"A「この バンドは 解散するらしいよ。」B「（　　）。」","choices":["まさか","ぜひ","やっと","それで"],"answer":1,"explanation":"まさか = không thể nào, chẳng lẽ (biểu thị bất ngờ, khó tin)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"田中さんは あちこちの 国、（　　）、アメリカ、中国、フランスなどで 生活した。","choices":["または","しかし","それで","たとえば"],"answer":4,"explanation":"例えば (たとえば) = ví dụ như (dẫn ra các ví dụ minh họa)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"A「わたしの こえが 聞こえますか。」B「（　　）聞こえます。」","choices":["ぜひ","もっとも","もっと","はっきり"],"answer":4,"explanation":"はっきり = rõ ràng."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"じゅぎょうは もっと（　　）聞いて ください。","choices":["もうすぐに","とくに","まっすぐに","ねっしんに"],"answer":4,"explanation":"熱心に = chăm chú, nhiệt tình."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"A「ちょっと 待って ください。すぐ 行きますから。」B「ご（　　）どうぞ。」","choices":["どんどん","はっきり","ゆっくり","すっかり"],"answer":3,"explanation":"ごゆっくりどうぞ = cứ thong thả nhé (câu giao tiếp lịch sự)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"先生、わたしは この くすりを 飲むと（　　）ねむく なるんです。","choices":["ちっとも","けっして","かならず","もっとも"],"answer":3,"explanation":"必ず = nhất định; thường đi cùng điều kiện 〜と để chỉ quy luật tất yếu."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"客「この セーターを（　　）小さいのと 取り替えたいのですが。」店員「はい、わかりました。」","choices":["どうぞ","きっと","やっと","もっと"],"answer":4,"explanation":"もっと + tính từ = (mức độ) hơn nữa: もっと小さい."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"図書館で しらべるか、（　　）インターネットを 使って しらべよう。","choices":["それで","たとえば","または","だから"],"answer":3,"explanation":"または = hoặc là (nối hai vế mang tính lựa chọn)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"デジカメを 買おうと 思ったが、（　　）やめる ことに した。","choices":["やっぱり","だいたい","まさか","どうぞ"],"answer":1,"explanation":"やっぱり = quả nhiên, rốt cuộc thì (kết luận sau khi cân nhắc)."},
+    {"section":"B","sectionTitle":"文法","mondai":"問題1","text":"（ファーストフード店で）店員「ここで めしあがりですか、（　　）お持ち帰りですか。」","choices":["けれども","それから","なぜなら","それとも"],"answer":4,"explanation":"それとも = hay là (nối các lựa chọn trong câu hỏi)."}
+  ]
+}

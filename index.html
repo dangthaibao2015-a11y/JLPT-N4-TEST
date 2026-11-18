@@ -268,7 +268,7 @@ textarea.fld{resize:vertical;line-height:1.7}
 'use strict';
 
 /* ===== CÀI ĐẶT ===== */
-var ADMIN_KEY = 'ABCXYZ';   // key nhập vào ở khu quản lý (địa chỉ ...#quan-ly) mới được tạo danh sách đề
+var ADMIN_KEY = '123123123';   // key nhập vào ở khu quản lý (địa chỉ ...#quan-ly) mới được tạo danh sách đề
 /* ================== */
 
 /* ---------- helpers ---------- */
@@ -385,7 +385,7 @@ function groupExams(){
 var S = {
   view: 'bank', expanded: {}, importErr: null,
   bankLv: 'all', loading: true, src: null, problems: [],
-  build: { selExams: {}, selSections: null, secCount: {}, shuffleQ: false, minutes: 0 },
+  build: { level: '', selExams: {}, selSections: null, secCount: {}, shuffleQ: false, minutes: 0 },
   ex: null, timer: null
 };
 function selCount(o){ return Object.keys(o).filter(function(k){ return o[k]; }).length; }
@@ -394,7 +394,17 @@ function examQs(id){ return db.questions.filter(function(q){ return q.examId ===
 function ensureBuildSel(){
   var b = S.build;
   Object.keys(b.selExams).forEach(function(id){ if (!examById(id)) delete b.selExams[id]; });
-  if (!selCount(b.selExams) && db.exams.length) b.selExams[db.exams[0].id] = true;
+  var groups = groupExams();
+  if (!groups.length) return;
+  if (!b.level || !groups.some(function(g){ return g.k === b.level; })){
+    var first = db.exams.filter(function(e){ return b.selExams[e.id]; })[0];
+    b.level = first ? levelKey(first) : groups[0].k;
+  }
+  Object.keys(b.selExams).forEach(function(id){ if (levelKey(examById(id)) !== b.level) delete b.selExams[id]; });
+  if (!selCount(b.selExams)){
+    var g = groups.filter(function(x){ return x.k === b.level; })[0];
+    if (g && g.exams[0]) b.selExams[g.exams[0].id] = true;
+  }
 }
 
 /* ---------- dialogs ---------- */
@@ -539,15 +549,19 @@ function pickQuestions(){
 }
 function buildHTML(){
   if (!db.exams.length){
-    return '<h1 class="page-title">Tạo bài thi</h1><div class="empty"><p>Cần có ít nhất một đề trong ngân hàng.</p><button type="button" class="btn primary" data-act="go" data-view="import">Nhập đề</button></div>';
+    return '<h1 class="page-title">Tạo bài thi</h1><div class="empty"><p>Chưa có đề nào để thi. Hãy kiểm tra mạng rồi tải lại trang.</p></div>';
   }
   ensureBuildSel();
-  var b = S.build, secs = availSections();
-  var h = '<h1 class="page-title">Tạo bài thi</h1><p class="lede">Chọn một hoặc nhiều đề để trộn lại, rồi chọn phần muốn thi và số câu lấy từ mỗi phần. Các phần cùng tên (ví dụ phần A của mỗi đề) được gộp chung.</p><div class="build"><div>';
-  h += '<section class="field"><h2>Đề</h2><p class="hint">Chọn nhiều đề để gộp thành một bài thi mới.</p>';
-  groupExams().forEach(function(g){
-    h += '<div class="grp-h"><strong>' + esc(lvLabel(g.k)) + '</strong><button type="button" class="btn quiet" data-act="selLevel" data-lv="' + g.k + '">Chọn cả cấp</button></div>';
-    g.exams.forEach(function(e){
+  var b = S.build, secs = availSections(), groups = groupExams();
+  var cur = groups.filter(function(g){ return g.k === b.level; })[0];
+  var allSel = cur.exams.every(function(e){ return b.selExams[e.id]; });
+  var h = '<h1 class="page-title">Tạo bài thi</h1><p class="lede">Chọn cấp, rồi chọn một hoặc nhiều đề của cấp đó. Sau đó chọn phần muốn thi và số câu lấy từ mỗi phần.</p><div class="build"><div>';
+  h += '<section class="field"><h2>Cấp độ</h2><p class="hint">Mỗi bài thi chỉ gồm đề của một cấp, không trộn các cấp với nhau.</p><div class="chips" role="group" aria-label="Cấp độ">' +
+    groups.map(function(g){ return '<button type="button" class="chip" data-act="buildLevel" data-lv="' + g.k + '" aria-pressed="' + (g.k === b.level) + '">' + esc(lvLabel(g.k)) + '<span class="n">' + g.exams.length + ' đề</span></button>'; }).join('') + '</div></section>';
+  h += '<section class="field"><div class="grp-h"><h2 style="margin:0">Đề ' + esc(lvLabel(b.level)) + '</h2>' + (cur.exams.length > 1 ? '<button type="button" class="btn quiet" data-act="selAllLevel">' + (allSel ? 'Chỉ giữ đề mới nhất' : 'Chọn tất cả') + '</button>' : '') + '</div><p class="hint">Chọn nhiều đề để gộp thành một bài thi mới.</p>';
+  cur.years.forEach(function(yr){
+    h += '<h3 class="yr">' + (yr.y ? 'Năm ' + yr.y : 'Chưa rõ năm') + '</h3>';
+    yr.exams.forEach(function(e){
       h += '<label class="check"><input type="checkbox" data-chg="exam" value="' + e.id + '"' + (b.selExams[e.id] ? ' checked' : '') + '><span><strong>' + esc(e.name) + '</strong> <span class="muted">' + examQs(e.id).length + ' câu</span></span></label>';
     });
   });
@@ -558,7 +572,6 @@ function buildHTML(){
       '<div class="scnt"><input class="num" type="number" min="0" max="' + s.n + '" value="' + want + '" data-chg="secN" data-sec="' + esc(s.section) + '" aria-label="Số câu của phần ' + esc(s.section) + '"' + (on ? '' : ' disabled') + '><span class="muted">/ ' + s.n + ' câu</span>' +
       '<button type="button" class="btn quiet" data-act="secAll" data-sec="' + esc(s.section) + '"' + (on ? '' : ' disabled') + '>Tất cả</button></div></div>';
   });
-  if (!secs.length) h += '<span class="muted">Hãy chọn ít nhất một đề.</span>';
   h += '</section><section class="field"><h2>Tùy chọn</h2>' +
     '<label class="check"><input type="checkbox" data-chg="shuffleQ"' + (b.shuffleQ ? ' checked' : '') + '><span>Xáo trộn thứ tự câu hỏi<br><span class="muted" style="font-size:.88rem">Các phần vẫn giữ thứ tự A, B, C và các câu cùng một bài đọc vẫn đi liền nhau. Nếu lấy ít hơn số câu có sẵn, web chọn ngẫu nhiên trong từng phần.</span></span></label>' +
     '<div class="row" style="margin-top:14px"><label for="mins">Thời gian làm bài</label><input id="mins" class="num" type="number" min="0" max="300" value="' + b.minutes + '" data-chg="minutes"> <span class="muted">phút (0 là không giới hạn)</span></div></section>';
@@ -576,7 +589,7 @@ function updateSummary(){
     rows.push('<li>Phần ' + esc(s.section) + ': ' + got + ' câu' + (got < want ? ' <span class="muted">(muốn ' + want + ', bài đọc đi liền nhau nên không ghép đủ)</span>' : '') + '</li>');
   });
   el.innerHTML = '<div><span class="big-n">' + cnt + '</span><span class="unit">câu</span></div><ul>' +
-    '<li>Từ ' + selCount(b.selExams) + ' đề</li>' + (rows.length ? rows.join('') : '<li>Chưa chọn phần nào</li>') +
+    '<li>' + (b.level === '?' ? 'Chưa phân cấp' : 'Cấp ' + esc(b.level)) + ': ' + selCount(b.selExams) + ' đề</li>' + (rows.length ? rows.join('') : '<li>Chưa chọn phần nào</li>') +
     '<li>' + (b.minutes > 0 ? b.minutes + ' phút' : 'Không giới hạn thời gian') + '</li></ul>' +
     '<button type="button" class="btn primary big" data-act="start"' + (cnt > 0 ? '' : ' disabled') + '>Bắt đầu thi</button>';
 }
@@ -1003,7 +1016,7 @@ function goView(v){
 var actions = {
   go: function(el){ goView(el.dataset.view); if (el.dataset.view === 'admin' && A.unlocked) adminRestore(); },
   toggleQ: function(el){ S.expanded[el.dataset.id] = !S.expanded[el.dataset.id]; render(); },
-  testExam: function(el){ S.build.selExams = {}; S.build.selExams[el.dataset.id] = true; S.build.selSections = null; S.build.secCount = {}; goView('build'); },
+  testExam: function(el){ var ex = examById(el.dataset.id); if (!ex) return; S.build.level = levelKey(ex); S.build.selExams = {}; S.build.selExams[ex.id] = true; S.build.selSections = null; S.build.secCount = {}; goView('build'); },
   secAll: function(el){
     var sec = el.dataset.sec; S.build.secCount[sec] = secMax(sec);
     var inp = document.querySelector('input[data-chg="secN"][data-sec="' + sec.replace(/"/g, '\\"') + '"]'); if (inp) inp.value = secMax(sec);
@@ -1032,10 +1045,14 @@ var actions = {
   },
   filter: function(el){ S.ex.filter = el.dataset.f; render(); },
   bankLv: function(el){ S.bankLv = el.dataset.lv; render(); },
-  selLevel: function(el){
-    var lv = el.dataset.lv, b = S.build, list = db.exams.filter(function(e){ return levelKey(e) === lv; });
-    var all = list.every(function(e){ return b.selExams[e.id]; });
-    list.forEach(function(e){ if (all) delete b.selExams[e.id]; else b.selExams[e.id] = true; });
+  buildLevel: function(el){
+    var b = S.build; b.level = el.dataset.lv; b.selExams = {}; b.selSections = null; b.secCount = {}; render();
+  },
+  selAllLevel: function(){
+    var b = S.build, g = groupExams().filter(function(x){ return x.k === b.level; })[0]; if (!g) return;
+    var all = g.exams.every(function(e){ return b.selExams[e.id]; });
+    b.selExams = {};
+    if (all) b.selExams[g.exams[0].id] = true; else g.exams.forEach(function(e){ b.selExams[e.id] = true; });
     b.selSections = null; b.secCount = {}; render();
   },
   adminLogin: function(){

@@ -83,7 +83,7 @@ h1,h2,h3,p{margin:0}
 .exam-note{margin-top:6px;font-size:.86rem;color:var(--ink-2)}
 .exam-actions{display:flex;gap:6px;flex-wrap:wrap}
 .qlist{margin:16px 0 0;padding:0;list-style:none;border:1px solid var(--line);border-radius:4px;background:var(--card);max-height:360px;overflow:auto}
-.qlist li{display:grid;grid-template-columns:3em 4.5em 1fr auto;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:.92rem;align-items:baseline}
+.qlist li{display:grid;grid-template-columns:3em 4.5em 1fr;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:.92rem;align-items:baseline}
 .qlist li:last-child{border-bottom:0}
 .qlist .qt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .empty{border:1px dashed var(--ink-2);border-radius:6px;padding:28px;text-align:center;color:var(--ink-2)}
@@ -252,7 +252,7 @@ textarea.fld{resize:vertical;line-height:1.7}
   .secrow{grid-template-columns:100px 1fr 56px}
   .tabs{margin-left:0;width:100%;overflow-x:auto}
   .top-in{gap:0}
-  .qlist li{grid-template-columns:2.5em 1fr auto}
+  .qlist li{grid-template-columns:2.5em 1fr}
   .qlist li .qs{display:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -385,7 +385,7 @@ function groupExams(){
 var S = {
   view: 'bank', expanded: {}, importErr: null,
   bankLv: 'all', loading: true, src: null, problems: [],
-  build: { selExams: {}, selSections: null, secCount: {}, shuffleQ: false, shuffleC: false, minutes: 0 },
+  build: { selExams: {}, selSections: null, secCount: {}, shuffleQ: false, minutes: 0 },
   ex: null, timer: null
 };
 function selCount(o){ return Object.keys(o).filter(function(k){ return o[k]; }).length; }
@@ -449,7 +449,7 @@ function examRowHTML(ex){
     '<button type="button" class="btn" data-act="toggleQ" data-id="' + ex.id + '" aria-expanded="' + (open ? 'true' : 'false') + '">' + (open ? 'Ẩn câu hỏi' : 'Xem câu hỏi') + '</button></div></div>';
   if (open){
     h += '<ol class="qlist">' + qs.map(function(q, i){
-      return '<li><span class="muted">' + (i + 1) + '</span><span class="muted qs">Phần ' + esc(q.section) + '</span><span class="qt jp" lang="ja">' + esc(q.text.replace(/\n/g, ' ')) + '</span><span class="muted">Đáp án ' + (q.answer + 1) + '</span></li>';
+      return '<li><span class="muted">' + (i + 1) + '</span><span class="muted qs">Phần ' + esc(q.section) + '</span><span class="qt jp" lang="ja">' + esc(q.text.replace(/\n/g, ' ')) + '</span></li>';
     }).join('') + '</ol>';
   }
   return h + '</li>';
@@ -561,7 +561,6 @@ function buildHTML(){
   if (!secs.length) h += '<span class="muted">Hãy chọn ít nhất một đề.</span>';
   h += '</section><section class="field"><h2>Tùy chọn</h2>' +
     '<label class="check"><input type="checkbox" data-chg="shuffleQ"' + (b.shuffleQ ? ' checked' : '') + '><span>Xáo trộn thứ tự câu hỏi<br><span class="muted" style="font-size:.88rem">Các phần vẫn giữ thứ tự A, B, C và các câu cùng một bài đọc vẫn đi liền nhau. Nếu lấy ít hơn số câu có sẵn, web chọn ngẫu nhiên trong từng phần.</span></span></label>' +
-    '<label class="check"><input type="checkbox" data-chg="shuffleC"' + (b.shuffleC ? ' checked' : '') + '><span>Xáo trộn thứ tự đáp án</span></label>' +
     '<div class="row" style="margin-top:14px"><label for="mins">Thời gian làm bài</label><input id="mins" class="num" type="number" min="0" max="300" value="' + b.minutes + '" data-chg="minutes"> <span class="muted">phút (0 là không giới hạn)</span></div></section>';
   h += '</div><aside class="summary" id="summary"></aside></div>';
   return h;
@@ -583,10 +582,10 @@ function updateSummary(){
 }
 
 /* ---------- exam session ---------- */
-function makeItems(qs, shuffleC){
+function makeItems(qs){
   return qs.map(function(q){
     var ord = q.choices.map(function(_, i){ return i; });
-    return { q: q, order: shuffleC ? shuffle(ord) : ord };
+    return { q: q, order: shuffle(ord) };
   });
 }
 function startSession(items, opts){
@@ -1013,7 +1012,7 @@ var actions = {
   start: function(){
     var b = S.build, qs = pickQuestions();
     if (!qs.length){ toast('Chưa có câu hỏi nào phù hợp.'); return; }
-    startSession(makeItems(qs, b.shuffleC), { minutes: b.minutes, shuffleC: b.shuffleC });
+    startSession(makeItems(qs), { minutes: b.minutes });
   },
   pick: function(el){ pick(+el.dataset.oi); },
   prev: function(){ setIdx(S.ex.idx - 1); },
@@ -1026,10 +1025,10 @@ var actions = {
       if (!v) return; stopTimer(); S.ex = null; goView('build');
     });
   },
-  retryAll: function(){ var ex = S.ex; startSession(makeItems(ex.items.map(function(i){ return i.q; }), ex.opts.shuffleC), ex.opts); },
+  retryAll: function(){ var ex = S.ex; startSession(makeItems(ex.items.map(function(i){ return i.q; })), ex.opts); },
   retryWrong: function(){
     var ex = S.ex, qs = ex.items.filter(function(it, i){ return statusOf(ex, i) !== 'right'; }).map(function(i){ return i.q; });
-    startSession(makeItems(qs, ex.opts.shuffleC), { minutes: 0, shuffleC: ex.opts.shuffleC });
+    startSession(makeItems(qs), { minutes: 0 });
   },
   filter: function(el){ S.ex.filter = el.dataset.f; render(); },
   bankLv: function(el){ S.bankLv = el.dataset.lv; render(); },
@@ -1062,7 +1061,6 @@ app.addEventListener('change', function(e){
     b.selSections[t.dataset.sec] = t.checked; render();
   }
   else if (k === 'shuffleQ'){ b.shuffleQ = t.checked; }
-  else if (k === 'shuffleC'){ b.shuffleC = t.checked; }
 });
 app.addEventListener('input', function(e){
   var t = e.target, k = t.dataset.chg, b = S.build;

@@ -56,4 +56,4 @@ jlpt-test/
 - **Xóa đề trong web là xóa tệp thật** trong thư mục, không qua thùng rác.
 - Tệp nào lỗi (JSON sai, thiếu đáp án…) sẽ được liệt kê ở mục “tệp không đọc được” ngay trên tab Ngân hàng đề.
 - Web giữ thêm một bản sao trong trình duyệt để mở lên là thấy ngay, nhưng thư mục `json` mới là bản gốc: quét lại là web lấy theo thư mục.
-- Font chữ tải từ Google nên cần mạng, nếu không có mạng web tự dùng font hệ thống.
+- Font dùng bộ メイリオ (Meiryo) có sẵn trên Windows nên không cần mạng. Máy Mac không có Meiryo thì web tự dùng font không chân mặc định của hệ thống.

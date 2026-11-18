@@ -1,35 +1,29 @@
-# Luyện đề JLPT (chạy trên máy, không cần cài gì)
+# Luyện đề JLPT
 
-## Cấu trúc thư mục
+Trang web cho người học: xem đề theo cấp, thi từng đề, trộn nhiều đề và chọn số câu từng phần.
+
+## Cấu trúc
 
 ```
-jlpt-test/
-├── index.html            Cả web nằm trong file này
-├── json/                 Mỗi đề là một tệp .json nằm trong đây
-│   ├── jlpt_n4_2010_2011.json
-│   ├── ...
-│   └── _danh-sach.js     Danh sách tự tạo, để mở bằng nhấp đúp là thấy đề ngay (đừng xóa)
-└── README.md
+index.html          Toàn bộ trang web
+json/               Mỗi đề là một tệp .json
+  _danh-sach.js     Danh sách đề do trang quản lý tạo ra (dự phòng khi GitHub không trả danh sách)
+README.md
 ```
 
-## Web tự hiện đề trong thư mục json như thế nào
+## Thêm đề (dành cho người đăng đề)
 
-| Cách bạn mở web | Đề có trong thư mục json |
-|---|---|
-| VS Code **Live Server**, hoặc bất kỳ máy chủ web nào (ví dụ `python -m http.server`) | Tự quét thư mục `json`. Thêm tệp rồi **tải lại trang** là thấy. |
-| **GitHub Pages** (`tên.github.io/tên-repo`) | Tự lấy danh sách tệp trong thư mục `json` của repo qua GitHub. Đẩy tệp mới lên (push) rồi tải lại trang là thấy. |
-| **Nhấp đúp** `index.html` (địa chỉ `file://`) | Trình duyệt không cho tự đọc thư mục, nên web đọc `json/_danh-sach.js`. Mở lên là thấy đề, không cần bấm gì. |
+1. Bỏ tệp `.json` của đề vào thư mục `json/`.
+2. Commit và push lên GitHub, đợi 1 đến 2 phút. Trang người học tự đọc thư mục `json/` của repo nên đề mới tự hiện.
+3. (Nên làm) Cập nhật `json/_danh-sach.js` để trang vẫn đủ đề khi GitHub từ chối trả danh sách:
+   - Mở trang bằng địa chỉ có đuôi `#quan-ly`, ví dụ `index.html#quan-ly` hoặc `.../JLPT-N4-TEST/#quan-ly`.
+   - Bấm **Chọn thư mục json**, chọn thư mục `json` trong dự án, bấm Cho phép (cần Chrome hoặc Edge).
+   - Web quét thư mục, ghi lại `json/_danh-sach.js` và báo các tệp bị lỗi (nếu có).
+   - Commit và push thêm tệp `_danh-sach.js`.
 
-Chỉ riêng trường hợp **nhấp đúp** và bạn **tự chép thêm tệp .json bằng tay** thì `_danh-sach.js` chưa có đề mới. Khi đó vào tab **Ngân hàng đề**, bấm **Quét thư mục**, chọn thư mục `json` và bấm Cho phép (Chrome hoặc Edge). Web đọc lại thư mục và tự cập nhật `_danh-sach.js`, các lần mở sau không cần bấm nữa.
+Trang `#quan-ly` không có nút nào dẫn tới và chỉ thao tác trên thư mục ở máy bạn, không thay đổi được trang web trên mạng.
 
-## Thêm đề
-
-- **Cách 1:** chép tệp .json vào thư mục `json` (rồi tải lại trang, hoặc bấm Quét thư mục nếu mở bằng nhấp đúp).
-- **Cách 2:** tab **Nhập đề**, dán JSON. Nếu đã cho phép ghi vào thư mục (Chrome hoặc Edge), web tự ghi tệp vào `json` và cập nhật `_danh-sach.js`.
-
-Đặt tên đề dạng `N4 T7/2021` để web tự xếp đề theo cấp, năm, tháng.
-
-## Định dạng JSON
+## Định dạng tệp JSON
 
 ```json
 {
@@ -53,12 +47,15 @@ Chỉ riêng trường hợp **nhấp đúp** và bạn **tự chép thêm tệp
 - Không bắt buộc: `sectionTitle`, `mondai`, `instruction`, `passage`, `group`, `explanation`.
 - Các câu cùng một bài đọc dùng chung `group` và `passage` để luôn đi liền nhau.
 - Từ gạch chân viết trong hai dấu gạch dưới, ví dụ `__映画__`.
-- Mỗi tệp một đề thì web mới sửa tên, cấp và xóa tệp giúp bạn được. Tệp dạng `{"exams": [...]}` vẫn đọc được nhưng web không ghi đè.
+- Đặt tên đề dạng `N4 T7/2021` để trang tự xếp theo cấp, năm, tháng.
+- Tệp sai định dạng sẽ không hiện cho người học. Trang `#quan-ly` liệt kê các tệp lỗi và lý do.
 
-## Lưu ý
+## Cách trang đọc danh sách đề
 
-- Ghi và xóa tệp trong thư mục chỉ làm được trên Chrome hoặc Edge (máy tính) sau khi bạn cho phép. Các trường hợp khác web chỉ đọc, đề mới thì bấm "Tải JSON" rồi tự bỏ tệp vào `json`.
-- Chrome không cho chọn thẳng các thư mục như Desktop, Documents, Downloads. Hãy chọn thư mục con `json`.
-- **Xóa đề trong web là xóa tệp thật** (khi đã cho phép ghi), không qua thùng rác.
-- Tệp nào lỗi (JSON sai, thiếu đáp án…) được liệt kê ở mục “tệp không đọc được” ngay trên tab Ngân hàng đề.
-- Font dùng bộ メイリオ (Meiryo) có sẵn trên Windows nên không cần mạng.
+| Cách mở trang | Cách đọc thư mục json |
+|---|---|
+| GitHub Pages | Hỏi GitHub danh sách tệp trong `json/`; nếu không được thì đọc `json/index.json`, rồi `json/_danh-sach.js` |
+| Live Server hoặc máy chủ web khác | Đọc danh sách thư mục của máy chủ |
+| Nhấp đúp `index.html` | Đọc `json/_danh-sach.js` |
+
+GitHub giới hạn khoảng 60 lượt hỏi mỗi giờ cho mỗi địa chỉ mạng. Khi vượt, người học vẫn thấy đủ đề trong lần cập nhật gần nhất của `_danh-sach.js`.

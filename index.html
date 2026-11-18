@@ -221,6 +221,13 @@ textarea.fld{resize:vertical;line-height:1.7}
 .edit-grid{display:grid;grid-template-columns:minmax(200px,1fr) 150px;gap:12px;flex:1;min-width:260px}
 .edit-grid label{display:grid;gap:4px;font-size:.88rem;color:var(--ink-2)}
 .arc-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+/* so cau tung phan */
+.srow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--card);margin-bottom:8px}
+.srow:has(input[data-chg="secOn"]:checked){border-color:var(--accent)}
+.srow label.sname{display:flex;gap:12px;align-items:center;cursor:pointer}
+.srow label.sname input{width:16px;height:16px;accent-color:var(--accent)}
+.srow .scnt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.srow.off .scnt{opacity:.45}
 /* thu muc json */
 .fscard{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--ink);border-radius:4px;background:var(--card);padding:16px 18px;margin-bottom:24px}
 .fscard p{margin:2px 0 0;font-size:.9rem}
@@ -260,6 +267,10 @@ textarea.fld{resize:vertical;line-height:1.7}
 (function(){
 'use strict';
 
+/* ===== CÀI ĐẶT ===== */
+var ADMIN_KEY = 'flm12345';   // key nhập vào ở khu quản lý (địa chỉ ...#quan-ly) mới được tạo danh sách đề
+/* ================== */
+
 /* ---------- helpers ---------- */
 var KEY = 'jlpt-bank-v1';
 var storageOk = true;
@@ -273,38 +284,6 @@ function fmt(sec){ sec = Math.max(0, Math.round(sec)); var h = Math.floor(sec / 
 var toastTimer;
 function toast(msg){ var t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove('show'); }, Math.max(2600, String(msg).length * 55)); }
 
-/* ---------- sample exam (do mình soạn, không phải đề thật) ---------- */
-var I1 = '＿＿＿の言葉の読み方として最もよいものを、1・2・3・4から一つ選びなさい。';
-var I2 = '＿＿＿の言葉を漢字で書くとき、最もよいものを、1・2・3・4から一つ選びなさい。';
-var I3 = '（　）に入れるのに最もよいものを、1・2・3・4から一つ選びなさい。';
-var P1 = '山田さんへ\n来週の金曜日に、クラスのみんなで食事に行くことになりました。場所は駅の前のイタリア料理の店です。時間は午後六時からです。もし来られなければ、水曜日までに私に連絡してください。\n田中';
-var P2 = '私は去年から、毎朝三十分ぐらい走っています。始めたときは、五分走っただけでとても疲れました。でも、続けているうちに、だんだん長く走れるようになりました。今では、走らない日は、なんだか体の調子が悪い気がします。';
-function A(m, ins, text, ch, ans){ return {section:'A', sectionTitle:'文字・語彙', mondai:m, instruction:ins, text:text, choices:ch, answer:ans}; }
-function B(text, ch, ans, ex){ return {section:'B', sectionTitle:'文法', mondai:'問題1', instruction:I3, text:text, choices:ch, answer:ans, explanation:ex}; }
-function C(g, p, text, ch, ans){ return {section:'C', sectionTitle:'読解', mondai:'問題2', group:g, passage:p, text:text, choices:ch, answer:ans}; }
-var SAMPLE = { name:'N4 T7/2021', level:'N4', questions:[
-  A('問題1', I1, '来週、友達と__映画__を見に行きます。', ['えいか','えいが','えいがく','えが'], 2),
-  A('問題1', I1, 'この__荷物__は重いですね。', ['にもつ','かもつ','にもの','かもの'], 1),
-  A('問題1', I1, '私の__趣味__は写真です。', ['すみ','しゅうみ','しゅみ','しゅめ'], 3),
-  A('問題1', I1, '駅の__近く__に新しい店ができました。', ['きんく','ちかい','ちがく','ちかく'], 4),
-  A('問題2', I2, '毎朝、__しんぶん__を読みます。', ['親聞','新間','新聞','親間'], 3),
-  A('問題2', I2, '図書館で本を__かりて__、うちで読みました。', ['貸りて','借りて','昔りて','惜りて'], 2),
-  A('問題3', I3, '暑いので、窓を（　）ください。', ['かけて','あけて','つけて','とめて'], 2),
-  A('問題3', I3, '田中さんは、とても（　）人で、みんなに好かれています。', ['やさしい','おそい','せまい','ひくい'], 1),
-  B('昨日は雨（　）降っていたので、どこにも行きませんでした。', ['を','が','に','で'], 2, 'Hiện tượng thời tiết như 雨, 雪 dùng が: 雨が降る.'),
-  B('日本語を勉強する（　）、毎日ニュースを見ています。', ['ので','のに','ために','ながら'], 3, 'Chỉ mục đích: V thể từ điển + ために.'),
-  B('先生が（　）本は、とてもおもしろかったです。', ['貸してくださった','貸していただいた','貸してあげた','貸してもらった'], 1, 'Chủ ngữ là 先生 (người trên) cho mình mượn: ～てくださる.'),
-  B('今日は寒い（　）、コートを着て行きましょう。', ['のに','から','ても','けど'], 2, 'から chỉ lý do: vì lạnh nên mặc áo khoác.'),
-  B('雨が降り（　）ですから、かさを持って行ったほうがいいですよ。', ['ごろ','らしい','ばかり','そう'], 4, 'V bỏ ます + そうだ: có vẻ sắp xảy ra.'),
-  B('子どものとき、よくこの川で泳い（　）ものです。', ['だ','た','で','て'], 1, 'V thể た + ものだ: hồi tưởng thói quen cũ. 泳ぐ → 泳いだ.'),
-  B('兄は大学を出て（　）、すぐに働き始めました。', ['まで','から','ので','ても'], 2, 'Vてから: sau khi làm xong V.'),
-  B('部屋の電気が（　）います。誰かいるのでしょう。', ['つけて','ついて','つけられて','つかれて'], 2, 'Tự động từ + ている chỉ trạng thái: 電気がついている (đèn đang sáng).'),
-  C('c1', P1, '食事の会について、正しいものはどれですか。', ['金曜日の午後六時に始まる。','水曜日に店を予約する。','店は学校の中にある。','来られない人は、金曜日に連絡する。'], 1),
-  C('c1', P1, '山田さんは、来られないとき、どうしなければなりませんか。', ['金曜日に店へ行く','水曜日までに田中さんに連絡する','駅の前で待つ','クラスのみんなに電話する'], 2),
-  C('c2', P2, '「私」は、走り始めたとき、どうでしたか。', ['三十分走っても疲れなかった','五分で疲れてしまった','走るのが好きだった','一日おきに走った'], 2),
-  C('c2', P2, '今の「私」について、正しいものはどれですか。', ['走らない日は、体の調子が悪い気がする。','毎朝一時間走っている。','去年、走るのをやめた。','走ると、いつも疲れる。'], 1)
-]};
-
 /* ---------- storage ---------- */
 var db = { exams: [], questions: [], seeded: false };
 function save(){
@@ -315,15 +294,16 @@ function load(){
   var raw = null;
   try { raw = localStorage.getItem(KEY); } catch (e) { storageOk = false; }
   if (raw){
-    try { var d = JSON.parse(raw); if (d && Array.isArray(d.exams) && Array.isArray(d.questions)){ db = d; return; } } catch (e) {}
+    try {
+      var d = JSON.parse(raw);
+      if (d && Array.isArray(d.exams) && Array.isArray(d.questions)){
+        var drop = {}; d.exams.forEach(function(e){ if (e.sample) drop[e.id] = true; });
+        d.exams = d.exams.filter(function(e){ return !drop[e.id]; });
+        d.questions = d.questions.filter(function(q){ return !drop[q.examId]; });
+        db = d;
+      }
+    } catch (e) {}
   }
-  addSample();
-  db.seeded = true;
-  save();
-}
-function addSample(){
-  var r = normalize(SAMPLE, '');
-  addExams(r.exams, true);
 }
 
 /* ---------- import / export ---------- */
@@ -368,91 +348,9 @@ function normalize(data, fallbackName){
   });
   return { errors: errors, exams: exams };
 }
-function uniqueName(name){
-  var names = db.exams.map(function(e){ return e.name; });
-  if (names.indexOf(name) < 0) return name;
-  var n = 2; while (names.indexOf(name + ' (' + n + ')') >= 0) n++;
-  return name + ' (' + n + ')';
-}
-function addExams(exams, isSample){
-  var qc = 0; addExams.last = [];
-  exams.forEach(function(e){
-    var id = uid();
-    var ex = { id: id, name: uniqueName(e.name), level: normLevel(e.level) || normLevel(e.name), created: Date.now(), sample: !!isSample };
-    db.exams.push(ex); addExams.last.push(ex);
-    e.questions.forEach(function(q){ q.examId = id; db.questions.push(q); qc++; });
-  });
-  return qc;
-}
-function qToJSON(q){
-  var o = { section: q.section };
-  if (q.sectionTitle) o.sectionTitle = q.sectionTitle;
-  if (q.mondai) o.mondai = q.mondai;
-  if (q.instruction) o.instruction = q.instruction;
-  if (q.group) o.group = q.group;
-  if (q.passage) o.passage = q.passage;
-  o.text = q.text; o.choices = q.choices; o.answer = q.answer + 1;
-  if (q.explanation) o.explanation = q.explanation;
-  if (q.answerSource) o.answerSource = q.answerSource;
-  return o;
-}
-function exportExam(ex){
-  return { name: ex.name, level: ex.level, questions: db.questions.filter(function(q){ return q.examId === ex.id; }).map(qToJSON) };
-}
-function download(name, obj){
-  try {
-    var blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
-  } catch (e) { toast('Không tải được tệp. Hãy dùng nút Sao chép JSON.'); }
-}
-function copyText(text, okMsg){
-  function fallback(){
-    var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
-    ta.remove(); toast(ok ? okMsg : 'Không sao chép được. Hãy bôi đen và sao chép thủ công.');
-  }
-  if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){ toast(okMsg); }, fallback); }
-  else fallback();
-}
-
-var EXAMPLE_JSON = [
-'{',
-'  "name": "N4 T7/2021",',
-'  "level": "N4",',
-'  "questions": [',
-'    {',
-'      "section": "A",',
-'      "sectionTitle": "文字・語彙",',
-'      "mondai": "問題1",',
-'      "instruction": "＿＿＿の言葉の読み方として…",',
-'      "text": "来週、友達と__映画__を見に行きます。",',
-'      "choices": ["えいか", "えいが", "えいがく", "えが"],',
-'      "answer": 2,',
-'      "explanation": "Không bắt buộc"',
-'    },',
-'    {',
-'      "section": "C",',
-'      "sectionTitle": "読解",',
-'      "group": "c1",',
-'      "passage": "山田さんへ …",',
-'      "text": "食事の会について、正しいものはどれですか。",',
-'      "choices": ["…", "…", "…", "…"],',
-'      "answer": 1',
-'    }',
-'  ]',
-'}'
-].join('\n');
-
 /* ---------- levels ---------- */
 var LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'];
 function normLevel(s){ var m = String(s || '').toUpperCase().match(/N\s*([1-5])/); return m ? 'N' + m[1] : ''; }
-function lvOptions(sel){
-  return '<option value="">Chưa rõ</option>' + LEVELS.map(function(l){ return '<option value="' + l + '"' + (sel === l ? ' selected' : '') + '>' + l + '</option>'; }).join('');
-}
 function levelKey(e){ return normLevel(e.level) || '?'; }
 function lvLabel(k){ return k === '?' ? 'Chưa phân cấp' : k; }
 function examMeta(e){
@@ -486,8 +384,8 @@ function groupExams(){
 /* ---------- app state ---------- */
 var S = {
   view: 'bank', expanded: {}, importErr: null,
-  bankLv: 'all', editing: null, editBuf: null, fs: { mode: 'none', handle: null, name: '', needPerm: false, busy: true }, files: {}, problems: [],
-  build: { selExams: {}, selSections: null, countMode: 'all', n: 20, shuffleQ: false, shuffleC: false, minutes: 0 },
+  bankLv: 'all', loading: true, src: null, problems: [],
+  build: { selExams: {}, selSections: null, secCount: {}, shuffleQ: false, shuffleC: false, minutes: 0 },
   ex: null, timer: null
 };
 function selCount(o){ return Object.keys(o).filter(function(k){ return o[k]; }).length; }
@@ -523,7 +421,7 @@ function renderHeader(){
   if (S.view === 'exam'){
     h += '<div class="top-tools"><span class="timer" id="timer"></span><button type="button" class="btn quiet" data-act="exit">Thoát</button><button type="button" class="btn primary" data-act="submit">Nộp bài</button></div>';
   } else {
-    var tabs = [['bank','Ngân hàng đề'],['build','Tạo bài thi'],['import','Nhập đề']];
+    var tabs = [['bank','Ngân hàng đề'],['build','Tạo bài thi'],['admin','Quản lý']];
     h += '<nav class="tabs" aria-label="Chính">' + tabs.map(function(t){
       return '<button type="button" class="tab" data-act="go" data-view="' + t[0] + '"' + (S.view === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>';
     }).join('') + '</nav>';
@@ -542,25 +440,13 @@ function sectionStats(qs){
   return m;
 }
 function examRowHTML(ex){
-  var qs = examQs(ex.id), st = sectionStats(qs), open = S.expanded[ex.id], h = '<li class="exam-row">';
-  if (S.editing === ex.id){
-    return h + '<div class="exam-head"><div class="edit-grid"><label>Tên đề<input class="fld" data-ed="name" value="' + esc(S.editBuf.name) + '"></label><label>Cấp<select class="fld" data-ed="level">' + lvOptions(S.editBuf.level) + '</select></label></div>' +
-      '<div class="exam-actions"><button type="button" class="btn primary" data-act="saveEdit" data-id="' + ex.id + '">Lưu</button><button type="button" class="btn" data-act="cancelEdit">Hủy</button></div></div><p class="exam-note">Đặt tên dạng “N4 T7/2021” để web tự xếp đề vào đúng cấp, năm và tháng.</p></li>';
-  }
-  var unsaved = S.fs.mode === 'dir' && !ex.file;
-  h += '<div class="exam-head"><div><div class="exam-title"><h3>' + esc(ex.name) + '</h3>' +
-    (normLevel(ex.level) ? '<span class="lvl">' + esc(normLevel(ex.level)) + '</span>' : '') +
-    (ex.sample ? '<span class="sample-tag">Đề mẫu</span>' : '') +
-    (unsaved ? '<span class="badge manual">Chưa lưu vào thư mục</span>' : '') + '</div>' +
-    '<p class="exam-meta">' + qs.length + ' câu. ' + st.map(function(s){ return 'Phần ' + esc(s.section) + (s.title ? ' (' + esc(s.title) + ')' : '') + ': ' + s.n; }).join(', ') + '.' + (ex.file ? ' Tệp: ' + esc(ex.file) + '.' : '') + '</p>' +
-    (ex.sample ? '<p class="exam-note">Câu hỏi do mình tự soạn theo dạng N4 để thử chức năng, không phải nội dung đề thi thật. Kết nối thư mục json thì đề mẫu này được thay bằng các tệp trong thư mục.</p>' : '') +
-    '</div><div class="exam-actions">' +
+  var qs = examQs(ex.id), st = sectionStats(qs), open = S.expanded[ex.id];
+  var h = '<li class="exam-row"><div class="exam-head"><div><div class="exam-title"><h3>' + esc(ex.name) + '</h3>' +
+    (normLevel(ex.level) ? '<span class="lvl">' + esc(normLevel(ex.level)) + '</span>' : '') + '</div>' +
+    '<p class="exam-meta">' + qs.length + ' câu. ' + st.map(function(s){ return 'Phần ' + esc(s.section) + (s.title ? ' (' + esc(s.title) + ')' : '') + ': ' + s.n; }).join(', ') + '.</p></div>' +
+    '<div class="exam-actions">' +
     '<button type="button" class="btn primary" data-act="testExam" data-id="' + ex.id + '">Thi đề này</button>' +
-    '<button type="button" class="btn" data-act="toggleQ" data-id="' + ex.id + '" aria-expanded="' + (open ? 'true' : 'false') + '">' + (open ? 'Ẩn câu hỏi' : 'Xem câu hỏi') + '</button>' +
-    '<button type="button" class="btn" data-act="editExam" data-id="' + ex.id + '">Sửa tên, cấp</button>' +
-    (unsaved && dirReady() ? '<button type="button" class="btn" data-act="saveToDir" data-id="' + ex.id + '">Lưu vào thư mục</button>' : '') +
-    '<button type="button" class="btn" data-act="exportExam" data-id="' + ex.id + '">Tải JSON</button>' +
-    '<button type="button" class="btn danger" data-act="delExam" data-id="' + ex.id + '">Xóa</button></div></div>';
+    '<button type="button" class="btn" data-act="toggleQ" data-id="' + ex.id + '" aria-expanded="' + (open ? 'true' : 'false') + '">' + (open ? 'Ẩn câu hỏi' : 'Xem câu hỏi') + '</button></div></div>';
   if (open){
     h += '<ol class="qlist">' + qs.map(function(q, i){
       return '<li><span class="muted">' + (i + 1) + '</span><span class="muted qs">Phần ' + esc(q.section) + '</span><span class="qt jp" lang="ja">' + esc(q.text.replace(/\n/g, ' ')) + '</span><span class="muted">Đáp án ' + (q.answer + 1) + '</span></li>';
@@ -568,61 +454,23 @@ function examRowHTML(ex){
   }
   return h + '</li>';
 }
-function roPicker(label){
-  return '<label class="btn">' + esc(label) + '<input type="file" webkitdirectory multiple data-chg="roDir" style="position:absolute;opacity:0;width:1px;height:1px" aria-label="' + esc(label) + '"></label>';
-}
-function fsCardHTML(){
-  var f = S.fs, h = '<section class="fscard" aria-label="Thư mục dữ liệu">';
-  if (f.busy) return h + '<p><strong>Đang đọc thư mục…</strong></p></section>';
-  if (f.mode === 'dir' && f.needPerm){
-    h += '<div><strong>Đã nhớ thư mục “' + esc(f.name) + '”.</strong><p class="muted">Trình duyệt cần bạn cho phép truy cập lại, bấm một lần là xong.</p></div>' +
-      '<div class="row" style="margin:0"><button type="button" class="btn primary" data-act="grantDir">Cho phép và đọc thư mục</button><button type="button" class="btn quiet" data-act="forgetDir">Bỏ thư mục này</button></div>';
-  } else if (f.mode === 'dir'){
-    h += '<div><strong>Thư mục “' + esc(f.name) + '”</strong> <span class="badge pdf">Đã kết nối</span><p class="muted">' + db.exams.length + ' đề. Đề nhập mới được ghi thành tệp .json trong thư mục này.</p></div>' +
-      '<div class="row" style="margin:0"><button type="button" class="btn" data-act="rescan">Quét lại</button><button type="button" class="btn" data-act="connectDir">Đổi thư mục</button><button type="button" class="btn quiet" data-act="forgetDir">Ngắt kết nối</button></div>';
-  } else if (f.mode === 'auto'){
-    var how = f.source === 'github' ? 'qua GitHub (' + esc(f.detail) + ')' : f.source === 'manifest' ? 'theo json/index.json' : 'từ danh sách thư mục của máy chủ web';
-    h += '<div><strong>Đang tự đọc thư mục json</strong> <span class="badge pdf">Tự động</span><p class="muted">' + db.exams.length + ' đề, đọc ' + how + '. Thêm tệp .json vào thư mục rồi tải lại trang là đề mới tự hiện.</p></div>' +
-      '<div class="row" style="margin:0"><button type="button" class="btn" data-act="reloadAuto">Tải lại danh sách</button>' + (canDir() ? '<button type="button" class="btn" data-act="connectDir">Cho phép ghi vào thư mục</button>' : '') + '</div>';
-  } else if (f.mode === 'bundle'){
-    h += '<div><strong>Đang đọc danh sách đã lưu trong json/_danh-sach.js</strong> <span class="badge pdf">Tự động</span><p class="muted">' + db.exams.length + ' đề. Danh sách này được cập nhật mỗi khi bạn quét thư mục hoặc nhập đề qua web. Mới chép thêm tệp .json bằng tay thì bấm “Quét thư mục” một lần để đề mới hiện ra.</p></div>' +
-      '<div class="row" style="margin:0"><button type="button" class="btn primary" data-act="scanBundle">Quét thư mục</button></div>';
-  } else if (f.mode === 'ro'){
-    h += '<div><strong>Thư mục “'  + esc(f.name) + '”</strong> <span class="badge manual">Chỉ đọc</span><p class="muted">' + db.exams.length + ' đề. Ở chế độ này web không tự ghi tệp được, hãy bấm “Tải JSON” rồi bỏ tệp vào thư mục.</p></div>' +
-      '<div class="row" style="margin:0">' + roPicker('Chọn lại thư mục') + '</div>';
-  } else {
-    h += '<div><strong>Chưa kết nối thư mục json.</strong><p class="muted">Đang hiện bản lưu trong trình duyệt. ' +
-      (canDir() ? 'Chọn thư mục json nằm cạnh index.html để web đọc mọi tệp .json trong đó và tự ghi tệp khi bạn nhập đề.' : 'Trình duyệt này không ghi thẳng vào thư mục được (cần Chrome hoặc Edge), nhưng vẫn đọc được thư mục ở chế độ chỉ đọc.') + '</p></div>' +
-      '<div class="row" style="margin:0">' + (canDir() ? '<button type="button" class="btn primary" data-act="connectDir">Chọn thư mục json</button>' + roPicker('Hoặc chọn chỉ đọc') : roPicker('Chọn thư mục json')) + '</div>';
-  }
-  if (S.problems.length){
-    h += '<details class="fsprob"><summary>' + S.problems.length + ' tệp không đọc được</summary><ul>' + S.problems.map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></details>';
-  }
-  return h + '</section>';
-}
 function bankHTML(){
-  var h = '<h1 class="page-title">Ngân hàng đề</h1><p class="lede">Đề được đọc từ các tệp .json trong thư mục json và tự xếp theo cấp (N5 đến N1), rồi theo năm, rồi theo tháng, dựa vào tên đề dạng “N4 T7/2021”.</p>';
-  if (!storageOk) h += '<div class="banner">Trình duyệt không cho lưu dữ liệu tạm. Hãy kết nối thư mục json để đề không bị mất.</div>';
-  h += fsCardHTML();
-  if (S.fs.busy) return h;
-  if (!db.exams.length){
-    h += '<div class="empty"><p>Chưa có đề nào trong ngân hàng.</p><button type="button" class="btn primary" data-act="go" data-view="import">Nhập đề đầu tiên</button></div>';
-  } else {
-    var groups = groupExams();
-    if (S.bankLv !== 'all' && !groups.some(function(g){ return g.k === S.bankLv; })) S.bankLv = 'all';
-    h += '<div class="chips" role="group" aria-label="Lọc theo cấp"><button type="button" class="chip" data-act="bankLv" data-lv="all" aria-pressed="' + (S.bankLv === 'all') + '">Tất cả<span class="n">' + db.exams.length + '</span></button>' +
-      groups.map(function(g){ return '<button type="button" class="chip" data-act="bankLv" data-lv="' + g.k + '" aria-pressed="' + (S.bankLv === g.k) + '">' + esc(lvLabel(g.k)) + '<span class="n">' + g.exams.length + '</span></button>'; }).join('') + '</div>';
-    groups.forEach(function(g){
-      if (S.bankLv !== 'all' && S.bankLv !== g.k) return;
-      h += '<h2 class="grp">' + esc(lvLabel(g.k)) + '<span class="muted">' + g.exams.length + ' đề</span></h2>';
-      g.years.forEach(function(yr){
-        h += '<h3 class="yr">' + (yr.y ? 'Năm ' + yr.y : 'Chưa rõ năm') + '<span class="muted">' + yr.exams.length + ' đề</span></h3><ul class="exam-list">' + yr.exams.map(examRowHTML).join('') + '</ul>';
-      });
+  var h = '<h1 class="page-title">Ngân hàng đề</h1><p class="lede">Đề được xếp theo cấp (N5 đến N1), rồi theo năm, rồi theo tháng. Chọn một đề để thi ngay, hoặc sang “Tạo bài thi” để trộn nhiều đề và chọn số câu từng phần.</p>';
+  if (S.loading && !db.exams.length) return h + '<p class="muted">Đang tải danh sách đề…</p>';
+  if (!db.exams.length) return h + '<div class="empty"><p>Chưa tải được danh sách đề. Hãy kiểm tra mạng rồi tải lại trang.</p></div>';
+  var groups = groupExams();
+  if (S.bankLv !== 'all' && !groups.some(function(g){ return g.k === S.bankLv; })) S.bankLv = 'all';
+  h += '<div class="chips" role="group" aria-label="Lọc theo cấp"><button type="button" class="chip" data-act="bankLv" data-lv="all" aria-pressed="' + (S.bankLv === 'all') + '">Tất cả<span class="n">' + db.exams.length + '</span></button>' +
+    groups.map(function(g){ return '<button type="button" class="chip" data-act="bankLv" data-lv="' + g.k + '" aria-pressed="' + (S.bankLv === g.k) + '">' + esc(lvLabel(g.k)) + '<span class="n">' + g.exams.length + '</span></button>'; }).join('') + '</div>';
+  groups.forEach(function(g){
+    if (S.bankLv !== 'all' && S.bankLv !== g.k) return;
+    h += '<h2 class="grp">' + esc(lvLabel(g.k)) + '<span class="muted">' + g.exams.length + ' đề</span></h2>';
+    g.years.forEach(function(yr){
+      h += '<h3 class="yr">' + (yr.y ? 'Năm ' + yr.y : 'Chưa rõ năm') + '<span class="muted">' + yr.exams.length + ' đề</span></h3><ul class="exam-list">' + yr.exams.map(examRowHTML).join('') + '</ul>';
     });
-  }
+  });
   return h;
 }
-
 /* ---------- builder ---------- */
 function secOn(sec){ var b = S.build; return b.selSections === null || !!b.selSections[sec]; }
 function selectedExamIds(){ return db.exams.filter(function(e){ return S.build.selExams[e.id]; }).map(function(e){ return e.id; }); }
@@ -636,10 +484,18 @@ function availSections(){
   });
   return m;
 }
-function poolQuestions(){
+function sectionPool(sec){
   var out = [];
-  selectedExamIds().forEach(function(id){ examQs(id).forEach(function(q){ if (secOn(q.section)) out.push(q); }); });
+  selectedExamIds().forEach(function(id){ examQs(id).forEach(function(q){ if (q.section === sec) out.push(q); }); });
   return out;
+}
+function secMax(sec){
+  var m = availSections().filter(function(s){ return s.section === sec; })[0];
+  return m ? m.n : 0;
+}
+function secWant(sec){
+  var max = secMax(sec), v = S.build.secCount[sec];
+  return v === undefined ? max : Math.max(0, Math.min(max, v));
 }
 function toUnits(qs){
   var map = {}, order = [];
@@ -650,15 +506,36 @@ function toUnits(qs){
   });
   return order.map(function(k){ return map[k]; });
 }
-function pickQuestions(){
-  var b = S.build, units = toUnits(poolQuestions());
-  if (b.shuffleQ) units = shuffle(units);
-  if (b.countMode === 'n'){
-    var left = b.n, chosen = [];
-    units.forEach(function(u){ if (u.length <= left){ chosen.push(u); left -= u.length; } });
-    units = chosen;
+/* chọn các nhóm câu (bài đọc đi liền nhau) sao cho tổng số câu gần nhất với "want" mà không vượt, ưu tiên các nhóm đứng trước */
+function pickUnits(units, want){
+  var n = units.length, reach = [], i, s;
+  if (want <= 0 || !n) return [];
+  var first = []; for (s = 0; s <= want; s++) first.push(false); first[0] = true; reach.push(first);
+  for (i = 0; i < n; i++){
+    var prev = reach[i], cur = prev.slice(), sz = units[i].length;
+    for (s = 0; s + sz <= want; s++) if (prev[s]) cur[s + sz] = true;
+    reach.push(cur);
   }
-  return units.reduce(function(a, u){ return a.concat(u); }, []);
+  var best = want; while (best > 0 && !reach[n][best]) best--;
+  var chosen = [], sum = best;
+  for (i = n; i >= 1; i--){
+    if (reach[i - 1][sum]) continue;
+    chosen.unshift(i - 1); sum -= units[i - 1].length;
+  }
+  return chosen;
+}
+function achievable(units, want){
+  return pickUnits(units, want).reduce(function(a, i){ return a + units[i].length; }, 0);
+}
+function pickQuestions(){
+  var b = S.build, out = [];
+  availSections().forEach(function(s){
+    if (!secOn(s.section)) return;
+    var units = toUnits(sectionPool(s.section));
+    if (b.shuffleQ) units = shuffle(units);
+    pickUnits(units, secWant(s.section)).forEach(function(i){ out = out.concat(units[i]); });
+  });
+  return out;
 }
 function buildHTML(){
   if (!db.exams.length){
@@ -666,7 +543,7 @@ function buildHTML(){
   }
   ensureBuildSel();
   var b = S.build, secs = availSections();
-  var h = '<h1 class="page-title">Tạo bài thi</h1><p class="lede">Chọn một hoặc nhiều đề để trộn lại, rồi chọn phần muốn thi. Các phần cùng tên (ví dụ phần A của mỗi đề) sẽ được gộp chung.</p><div class="build"><div>';
+  var h = '<h1 class="page-title">Tạo bài thi</h1><p class="lede">Chọn một hoặc nhiều đề để trộn lại, rồi chọn phần muốn thi và số câu lấy từ mỗi phần. Các phần cùng tên (ví dụ phần A của mỗi đề) được gộp chung.</p><div class="build"><div>';
   h += '<section class="field"><h2>Đề</h2><p class="hint">Chọn nhiều đề để gộp thành một bài thi mới.</p>';
   groupExams().forEach(function(g){
     h += '<div class="grp-h"><strong>' + esc(lvLabel(g.k)) + '</strong><button type="button" class="btn quiet" data-act="selLevel" data-lv="' + g.k + '">Chọn cả cấp</button></div>';
@@ -674,16 +551,16 @@ function buildHTML(){
       h += '<label class="check"><input type="checkbox" data-chg="exam" value="' + e.id + '"' + (b.selExams[e.id] ? ' checked' : '') + '><span><strong>' + esc(e.name) + '</strong> <span class="muted">' + examQs(e.id).length + ' câu</span></span></label>';
     });
   });
-  h += '</section><section class="field"><h2>Phần thi</h2><p class="hint">Bấm để bật hoặc tắt từng phần.</p><div class="chips">';
+  h += '</section><section class="field"><h2>Phần thi và số câu</h2><p class="hint">Bật phần muốn thi rồi nhập số câu lấy từ phần đó, tối đa bằng số câu có sẵn. Mỗi phần tự đặt số câu riêng.</p>';
   secs.forEach(function(s){
-    h += '<button type="button" class="chip" data-act="toggleSec" data-sec="' + esc(s.section) + '" aria-pressed="' + (secOn(s.section) ? 'true' : 'false') + '">Phần ' + esc(s.section) + (s.title ? '<span lang="ja">（' + esc(s.title) + '）</span>' : '') + '<span class="n">' + s.n + ' câu</span></button>';
+    var on = secOn(s.section), want = secWant(s.section);
+    h += '<div class="srow' + (on ? '' : ' off') + '"><label class="sname"><input type="checkbox" data-chg="secOn" data-sec="' + esc(s.section) + '"' + (on ? ' checked' : '') + '><span>Phần ' + esc(s.section) + (s.title ? ' <span lang="ja">（' + esc(s.title) + '）</span>' : '') + '</span></label>' +
+      '<div class="scnt"><input class="num" type="number" min="0" max="' + s.n + '" value="' + want + '" data-chg="secN" data-sec="' + esc(s.section) + '" aria-label="Số câu của phần ' + esc(s.section) + '"' + (on ? '' : ' disabled') + '><span class="muted">/ ' + s.n + ' câu</span>' +
+      '<button type="button" class="btn quiet" data-act="secAll" data-sec="' + esc(s.section) + '"' + (on ? '' : ' disabled') + '>Tất cả</button></div></div>';
   });
   if (!secs.length) h += '<span class="muted">Hãy chọn ít nhất một đề.</span>';
-  h += '</div></section><section class="field"><h2>Số câu</h2><div class="row"><label><input type="radio" name="cm" data-chg="count" value="all"' + (b.countMode === 'all' ? ' checked' : '') + '> Tất cả câu đã chọn</label>' +
-    '<label><input type="radio" name="cm" data-chg="count" value="n"' + (b.countMode === 'n' ? ' checked' : '') + '> Chỉ lấy</label>' +
-    '<input class="num" type="number" min="1" max="500" value="' + b.n + '" data-chg="n" aria-label="Số câu"' + (b.countMode === 'n' ? '' : ' disabled') + '> <span class="muted">câu</span></div></section>' +
-    '<section class="field"><h2>Tùy chọn</h2>' +
-    '<label class="check"><input type="checkbox" data-chg="shuffleQ"' + (b.shuffleQ ? ' checked' : '') + '><span>Xáo trộn thứ tự câu hỏi<br><span class="muted" style="font-size:.88rem">Các câu cùng một bài đọc vẫn đi liền nhau. Nếu chỉ lấy một phần số câu, hệ thống sẽ chọn ngẫu nhiên.</span></span></label>' +
+  h += '</section><section class="field"><h2>Tùy chọn</h2>' +
+    '<label class="check"><input type="checkbox" data-chg="shuffleQ"' + (b.shuffleQ ? ' checked' : '') + '><span>Xáo trộn thứ tự câu hỏi<br><span class="muted" style="font-size:.88rem">Các phần vẫn giữ thứ tự A, B, C và các câu cùng một bài đọc vẫn đi liền nhau. Nếu lấy ít hơn số câu có sẵn, web chọn ngẫu nhiên trong từng phần.</span></span></label>' +
     '<label class="check"><input type="checkbox" data-chg="shuffleC"' + (b.shuffleC ? ' checked' : '') + '><span>Xáo trộn thứ tự đáp án</span></label>' +
     '<div class="row" style="margin-top:14px"><label for="mins">Thời gian làm bài</label><input id="mins" class="num" type="number" min="0" max="300" value="' + b.minutes + '" data-chg="minutes"> <span class="muted">phút (0 là không giới hạn)</span></div></section>';
   h += '</div><aside class="summary" id="summary"></aside></div>';
@@ -691,57 +568,19 @@ function buildHTML(){
 }
 function updateSummary(){
   var el = $('#summary'); if (!el) return;
-  var b = S.build, pool = poolQuestions().length, cnt = b.countMode === 'n' ? Math.min(b.n, pool) : pool;
-  var secs = availSections().filter(function(s){ return secOn(s.section); }).map(function(s){ return s.section; });
-  el.innerHTML = '<div><span class="big-n">' + cnt + '</span><span class="unit">câu' + (b.countMode === 'n' ? ' (tối đa)' : '') + '</span></div><ul>' +
-    '<li>Từ ' + selCount(b.selExams) + ' đề</li><li>' + (secs.length ? 'Phần ' + secs.map(esc).join(', ') : 'Chưa chọn phần nào') + '</li>' +
+  var b = S.build, rows = [], cnt = 0;
+  availSections().forEach(function(s){
+    if (!secOn(s.section)) return;
+    var want = secWant(s.section), got = achievable(toUnits(sectionPool(s.section)), want);
+    if (want <= 0) return;
+    cnt += got;
+    rows.push('<li>Phần ' + esc(s.section) + ': ' + got + ' câu' + (got < want ? ' <span class="muted">(muốn ' + want + ', bài đọc đi liền nhau nên không ghép đủ)</span>' : '') + '</li>');
+  });
+  el.innerHTML = '<div><span class="big-n">' + cnt + '</span><span class="unit">câu</span></div><ul>' +
+    '<li>Từ ' + selCount(b.selExams) + ' đề</li>' + (rows.length ? rows.join('') : '<li>Chưa chọn phần nào</li>') +
     '<li>' + (b.minutes > 0 ? b.minutes + ' phút' : 'Không giới hạn thời gian') + '</li></ul>' +
     '<button type="button" class="btn primary big" data-act="start"' + (cnt > 0 ? '' : ' disabled') + '>Bắt đầu thi</button>';
 }
-
-/* ---------- import view ---------- */
-function importHTML(){
-  var where = dirReady()
-    ? 'Mỗi đề nhập vào sẽ được ghi thành một tệp .json trong thư mục “' + esc(S.fs.name) + '”.'
-    : 'Chưa kết nối thư mục nên đề chỉ được giữ trong trình duyệt: sau khi nhập, hãy bấm “Tải JSON” rồi bỏ tệp vào thư mục json, hoặc kết nối thư mục ở tab Ngân hàng đề.';
-  var h = '<h1 class="page-title">Nhập đề</h1><p class="lede">Dán JSON hoặc chọn tệp .json. ' + where + ' Bạn cũng có thể chép thẳng tệp .json vào thư mục rồi bấm “Quét lại” ở tab Ngân hàng đề.</p>';
-  h += '<section class="block"><h2>Dán hoặc chọn tệp</h2><div class="row"><label for="nameIn">Tên đề</label><input id="nameIn" class="text-in" type="text" placeholder="Chỉ cần nếu JSON chưa có tên" autocomplete="off"></div>' +
-    '<textarea id="jsonIn" class="code" spellcheck="false" aria-label="JSON đề thi" placeholder="Dán JSON vào đây"></textarea>' +
-    '<div class="row" style="margin-top:12px"><input id="fileIn" type="file" accept=".json,application/json" data-chg="file"><button type="button" class="btn primary" data-act="doImport">Nhập vào ngân hàng</button></div>';
-  if (S.importErr){
-    h += '<div class="err" role="alert"><strong>Chưa nhập được.</strong><ul>' + S.importErr.slice(0, 8).map(function(e){ return '<li>' + esc(e) + '</li>'; }).join('') + '</ul>' +
-      (S.importErr.length > 8 ? '<p>Và ' + (S.importErr.length - 8) + ' lỗi khác.</p>' : '') + '</div>';
-  }
-  h += '</section><section class="block"><h2>Định dạng JSON</h2><details open><summary>Ví dụ và quy tắc</summary><pre class="code" lang="ja">' + esc(EXAMPLE_JSON) + '</pre>' +
-    '<p style="margin-top:10px"><strong>Bắt buộc:</strong> section, text, choices (2 đến 6 đáp án), answer (số thứ tự đáp án đúng, đếm từ 1).</p>' +
-    '<p><strong>Không bắt buộc:</strong> sectionTitle, mondai, instruction, passage, group, explanation.</p>' +
-    '<p>Câu cùng một bài đọc dùng chung group và passage để luôn đi liền nhau. Từ gạch chân viết trong hai dấu gạch dưới, ví dụ __映画__. Một tệp có thể chứa nhiều đề nếu dùng {"exams": [ … ]}, nhưng mỗi tệp một đề thì web mới sửa và xóa tệp giúp bạn được.</p></details></section>';
-  h += '<section class="block"><h2>Sao lưu</h2><p class="muted" style="margin-bottom:10px">Tải toàn bộ ngân hàng thành một tệp JSON để cất riêng.</p>' +
-    '<div class="row"><button type="button" class="btn" data-act="exportAll"' + (db.exams.length ? '' : ' disabled') + '>Tải toàn bộ ngân hàng</button><button type="button" class="btn" data-act="copyAll"' + (db.exams.length ? '' : ' disabled') + '>Sao chép JSON</button></div></section>';
-  return h;
-}
-async function doImport(){
-  var raw = stripFence($('#jsonIn').value), fb = $('#nameIn').value.trim();
-  if (!raw){ S.importErr = ['Ô JSON đang trống.']; render(); return; }
-  var data;
-  try { data = JSON.parse(raw); }
-  catch (e) { S.importErr = ['JSON không đọc được: ' + e.message]; keepInputs(raw, fb); return; }
-  var r = normalize(data, fb);
-  if (r.errors.length){ S.importErr = r.errors; keepInputs(raw, fb); return; }
-  var qc = addExams(r.exams, false), added = addExams.last.slice(), saved = 0, failed = 0;
-  if (dirReady()){
-    for (var i = 0; i < added.length; i++){
-      try { await saveExamFile(added[i]); saved++; } catch (e) { added[i].file = ''; failed++; }
-    }
-  }
-  save(); S.importErr = null;
-  S.view = 'bank'; location.hash = 'bank'; render();
-  var msg = 'Đã thêm ' + r.exams.length + ' đề, ' + qc + ' câu.';
-  if (dirReady()) msg += failed ? ' Không ghi được ' + failed + ' đề vào thư mục, hãy bấm “Lưu vào thư mục” ở từng đề.' : ' Đã ghi ' + saved + ' tệp vào thư mục “' + S.fs.name + '”.';
-  else msg += ' Đề mới chỉ nằm trong trình duyệt, hãy bấm “Tải JSON” rồi bỏ tệp vào thư mục json.';
-  toast(msg);
-}
-function keepInputs(raw, fb){ render(); $('#jsonIn').value = raw; $('#nameIn').value = fb; }
 
 /* ---------- exam session ---------- */
 function makeItems(qs, shuffleC){
@@ -870,12 +709,9 @@ function resultHTML(){
   return h;
 }
 
-/* ---------- thư mục json ---------- */
+/* ---------- đọc tệp json ---------- */
 function stripFence(t){ return String(t).replace(/^\uFEFF/, '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, ''); }
 function baseName(p){ return String(p).split('/').pop().replace(/\.json$/i, ''); }
-function canDir(){ return typeof window.showDirectoryPicker === 'function'; }
-function dirReady(){ return S.fs.mode === 'dir' && !S.fs.needPerm && !!S.fs.handle; }
-function safeFile(name){ return String(name).replace(/[\\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'de'; }
 function fixLevels(){
   var c = false;
   db.exams.forEach(function(e){
@@ -884,42 +720,6 @@ function fixLevels(){
     else if (e.level !== cur){ e.level = cur; c = true; }
   });
   if (c) save();
-}
-
-/* nhớ thư mục đã chọn (IndexedDB) */
-function idbOpen(){
-  return new Promise(function(res, rej){
-    var r = indexedDB.open('jlpt-fs', 1);
-    r.onupgradeneeded = function(){ r.result.createObjectStore('kv'); };
-    r.onsuccess = function(){ res(r.result); };
-    r.onerror = function(){ rej(r.error); };
-  });
-}
-function idbGet(k){
-  return idbOpen().then(function(d){ return new Promise(function(res, rej){
-    var q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = function(){ res(q.result); }; q.onerror = function(){ rej(q.error); };
-  }); });
-}
-function idbSet(k, v){
-  return idbOpen().then(function(d){ return new Promise(function(res, rej){
-    var tx = d.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = function(){ res(); }; tx.onerror = function(){ rej(tx.error); };
-  }); });
-}
-function idbDel(k){
-  return idbOpen().then(function(d){ return new Promise(function(res, rej){
-    var tx = d.transaction('kv', 'readwrite'); tx.objectStore('kv').delete(k); tx.oncomplete = function(){ res(); }; tx.onerror = function(){ rej(tx.error); };
-  }); });
-}
-
-/* đọc */
-async function scanDir(dir, prefix, out){
-  for await (var entry of dir.values()){
-    if (entry.kind === 'directory') await scanDir(entry, prefix + entry.name + '/', out);
-    else if (/\.json$/i.test(entry.name)){
-      var f = await entry.getFile();
-      out.push({ path: prefix + entry.name, text: await f.text(), mtime: f.lastModified });
-    }
-  }
 }
 function loadEntries(entries, extra){
   var exams = [], qs = [], problems = (extra || []).slice(), used = {};
@@ -938,89 +738,9 @@ function loadEntries(entries, extra){
       e.questions.forEach(function(q){ q.examId = id; qs.push(q); });
     });
   });
-  db.exams = exams; db.questions = qs; db.seeded = true;
-  S.problems = problems; S.build.selExams = {}; S.build.selSections = null; S.editing = null; S.expanded = {};
+  S.entries = entries; db.exams = exams; db.questions = qs; db.seeded = true;
+  S.problems = problems; S.build.selExams = {}; S.build.selSections = null; S.build.secCount = {}; S.expanded = {};
   save();
-}
-async function rescan(){
-  S.fs.busy = true; render();
-  try {
-    var entries = []; await scanDir(S.fs.handle, '', entries);
-    S.files = {}; entries.forEach(function(en){ S.files[en.path] = { text: en.text, mtime: en.mtime }; });
-    loadEntries(entries); S.fs.busy = false; render();
-    await writeBundle();
-    toast('Đã đọc ' + db.exams.length + ' đề từ thư mục “' + S.fs.name + '”.' + (S.problems.length ? ' Có ' + S.problems.length + ' tệp lỗi.' : ''));
-  } catch (e){
-    S.fs.busy = false;
-    if (e && e.name === 'NotAllowedError') S.fs.needPerm = true;
-    render(); toast('Không đọc được thư mục: ' + ((e && e.message) || e));
-  }
-}
-async function connectDir(){
-  if (!canDir()){ toast('Trình duyệt này không ghi được thư mục. Hãy dùng Chrome hoặc Edge, hoặc chọn thư mục ở chế độ chỉ đọc.'); return; }
-  var h;
-  try { h = await window.showDirectoryPicker({ id: 'jlpt-json', mode: 'readwrite' }); }
-  catch (e) { if (!e || e.name !== 'AbortError') toast('Không mở được thư mục: ' + ((e && e.message) || e)); return; }
-  try { await idbSet('dir', h); } catch (e) {}
-  S.fs = { mode: 'dir', handle: h, name: h.name, needPerm: false, busy: false };
-  await rescan();
-}
-async function grantDir(){
-  var h = S.fs.handle, p = 'denied';
-  try { p = await h.requestPermission({ mode: 'readwrite' }); } catch (e) {}
-  if (p === 'granted'){ S.fs.needPerm = false; await rescan(); } else toast('Bạn chưa cho phép truy cập thư mục.');
-}
-async function restoreDir(){
-  if (!canDir() || typeof indexedDB === 'undefined') return;
-  var h; try { h = await idbGet('dir'); } catch (e) { return; }
-  if (!h) return;
-  var p = 'prompt'; try { p = await h.queryPermission({ mode: 'readwrite' }); } catch (e) {}
-  if (p === 'granted'){ S.fs = { mode: 'dir', handle: h, name: h.name, needPerm: false, busy: false }; await rescan(); return; }
-  if (S.fs.mode === 'bundle' || S.fs.mode === 'auto'){ S.fs.pending = h; render(); return; }
-  S.fs = { mode: 'dir', handle: h, name: h.name, needPerm: true, busy: false }; render();
-}
-async function forgetDir(){
-  try { await idbDel('dir'); } catch (e) {}
-  S.fs = { mode: 'none', handle: null, name: '', needPerm: false, busy: false };
-  render(); toast('Đã ngắt kết nối thư mục. Đề trong trình duyệt vẫn còn.');
-}
-async function readOnlyDir(files){
-  var list = Array.prototype.filter.call(files || [], function(f){ return /\.json$/i.test(f.name); });
-  if (!list.length){ toast('Không thấy tệp .json nào trong thư mục đã chọn.'); return; }
-  var entries = await Promise.all(list.map(async function(f){
-    var rel = f.webkitRelativePath || f.name, parts = rel.split('/');
-    return { path: parts.length > 1 ? parts.slice(1).join('/') : rel, text: await f.text(), mtime: f.lastModified };
-  }));
-  var root = (list[0].webkitRelativePath || '').split('/')[0] || 'thư mục';
-  S.fs = { mode: 'ro', handle: null, name: root, needPerm: false, busy: false };
-  loadEntries(entries); render();
-  toast('Đã đọc ' + db.exams.length + ' đề từ thư mục “' + root + '” (chỉ đọc).' + (S.problems.length ? ' Có ' + S.problems.length + ' tệp lỗi.' : ''));
-}
-
-/* ghi */
-async function dirFor(path, create){
-  var parts = path.split('/'), dir = S.fs.handle;
-  for (var i = 0; i < parts.length - 1; i++) dir = await dir.getDirectoryHandle(parts[i], { create: create });
-  return { dir: dir, name: parts[parts.length - 1] };
-}
-async function fileExists(path){
-  try { var r = await dirFor(path, false); await r.dir.getFileHandle(r.name); return true; } catch (e) { return false; }
-}
-async function writeFile(path, text){
-  var r = await dirFor(path, true), fh = await r.dir.getFileHandle(r.name, { create: true }), w = await fh.createWritable();
-  await w.write(text); await w.close();
-}
-async function removeFile(path){ var r = await dirFor(path, false); await r.dir.removeEntry(r.name); delete S.files[path]; await writeBundle(); }
-async function saveExamFile(ex){
-  var json = JSON.stringify(exportExam(ex), null, 2);
-  if (!ex.file){
-    var base = safeFile(ex.name), path = base + '.json', n = 2;
-    while (await fileExists(path)) path = base + ' (' + (n++) + ').json';
-    ex.file = path;
-  }
-  await writeFile(ex.file, json);
-  S.files[ex.file] = { text: json, mtime: Date.now() };
-  await writeBundle();
 }
 
 /* ---------- tự nạp thư mục json ---------- */
@@ -1077,19 +797,22 @@ function loadBundle(){
   });
 }
 async function loadByHttp(){
-  if (typeof fetch === 'undefined') return null;
   var base = new URL('json/', location.href), urls = null, source = '', detail = '';
-  try { urls = await listByIndexPage(base.href, 0); if (urls.length) source = 'listing'; } catch (e) { urls = null; }
+  if (typeof fetch !== 'undefined'){
+    try { urls = await listByIndexPage(base.href, 0); if (urls.length) source = 'listing'; } catch (e) { urls = null; }
+  }
+  if (!urls || !urls.length){
+    var b = await loadBundle();
+    if (b) return { entries: b, problems: [], source: 'bundle' };
+  }
+  if (typeof fetch === 'undefined') return null;
   if (!urls || !urls.length){
     try { var g = await listByGithub(); if (g && g.urls.length){ urls = g.urls; source = 'github'; detail = g.repo; } } catch (e) { urls = null; }
   }
   if (!urls || !urls.length){
     try { urls = await listByManifest(); if (urls.length) source = 'manifest'; } catch (e) { urls = null; }
   }
-  if (!urls || !urls.length){
-    var b = await loadBundle();
-    return b ? { entries: b, problems: [], source: 'bundle' } : null;
-  }
+  if (!urls || !urls.length) return null;
   var problems = [], entries = [];
   await Promise.all(urls.map(async function(u){
     var rel = decodeURIComponent(new URL(u).pathname.slice(base.pathname.length));
@@ -1105,16 +828,158 @@ async function autoLoad(){
   catch (e) { res = null; }
   if (res){
     loadEntries(res.entries, res.problems);
-    S.fs = { mode: res.source === 'bundle' ? 'bundle' : 'auto', source: res.source, detail: res.detail || '', name: 'json', handle: null, needPerm: false, busy: false, pending: S.fs.pending || null };
-    render(); return true;
+    S.src = { source: res.source, detail: res.detail || '' };
+    S.loading = false; render(); return true;
   }
-  S.fs.busy = false; render(); return false;
+  S.loading = false; render(); return false;
 }
-async function writeBundle(){
-  if (!dirReady()) return;
-  var list = Object.keys(S.files).sort().map(function(p){ return { path: p, text: S.files[p].text, mtime: S.files[p].mtime }; });
-  var code = 'window.JLPT_FILES = ' + JSON.stringify(list).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') + ';\n';
-  try { await writeFile('_danh-sach.js', code); } catch (e) {}
+/* ---------- khu quản lý: tạo json/_danh-sach.js (cần key admin) ---------- */
+var A = { unlocked: false, keyIn: '', local: null, err: null, dir: null, remembered: null, busy: false };
+function loadAdmin(){ try { A.unlocked = sessionStorage.getItem('jlpt-admin') === '1'; } catch (e) {} }
+function setUnlocked(v){
+  A.unlocked = v;
+  try { if (v) sessionStorage.setItem('jlpt-admin', '1'); else sessionStorage.removeItem('jlpt-admin'); } catch (e) {}
+}
+function checkEntries(entries){
+  var ok = [], problems = [];
+  entries.forEach(function(en){
+    if (en.path === 'index.json') return;
+    var data;
+    try { data = JSON.parse(stripFence(en.text)); } catch (e) { problems.push(en.path + ': JSON không đọc được (' + e.message + ')'); return; }
+    var r = normalize(data, baseName(en.path));
+    if (r.errors.length){ problems.push(en.path + ': ' + r.errors[0]); return; }
+    ok.push({ path: en.path, text: en.text, exams: r.exams.length, questions: r.exams.reduce(function(a, e){ return a + e.questions.length; }, 0) });
+  });
+  return { ok: ok, problems: problems };
+}
+function adminSource(){
+  return A.local ? { name: 'thư mục “' + A.local.name + '” bạn vừa chọn', entries: A.local.entries } : { name: 'các tệp mà trang này đang đọc', entries: S.entries || [] };
+}
+function canFS(){ return typeof window.showDirectoryPicker === 'function'; }
+function idbOpen(){
+  return new Promise(function(res, rej){
+    var r = indexedDB.open('jlpt-fs', 1);
+    r.onupgradeneeded = function(){ r.result.createObjectStore('kv'); };
+    r.onsuccess = function(){ res(r.result); };
+    r.onerror = function(){ rej(r.error); };
+  });
+}
+function idbGet(k){ return idbOpen().then(function(d){ return new Promise(function(res, rej){ var q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = function(){ res(q.result); }; q.onerror = function(){ rej(q.error); }; }); }); }
+function idbSet(k, v){ return idbOpen().then(function(d){ return new Promise(function(res, rej){ var tx = d.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = function(){ res(); }; tx.onerror = function(){ rej(tx.error); }; }); }); }
+async function scanDir(dir, prefix, out, depth){
+  for await (var entry of dir.values()){
+    if (entry.kind === 'directory'){
+      if (depth < 3 && entry.name.charAt(0) !== '.' && entry.name !== 'node_modules') await scanDir(entry, prefix + entry.name + '/', out, depth + 1);
+    } else if (/\.json$/i.test(entry.name)){
+      var f = await entry.getFile();
+      out.push({ path: prefix + entry.name, text: await f.text() });
+    }
+  }
+}
+/* người dùng có thể chọn thư mục json, hoặc cả thư mục dự án (bên trong có thư mục json) */
+async function resolveJsonDir(h){
+  if (h.name.toLowerCase() === 'json') return h;
+  try { return await h.getDirectoryHandle('json'); } catch (e) { return h; }
+}
+async function adminUseDir(h){
+  A.busy = true; A.err = null; render();
+  try {
+    var jd = await resolveJsonDir(h), entries = [];
+    await scanDir(jd, '', entries, 0);
+    A.dir = { handle: h, jsonDir: jd, name: h.name }; A.remembered = h;
+    A.local = { name: jd.name, entries: entries };
+  } catch (e) { A.err = ['Không đọc được thư mục: ' + ((e && e.message) || e)]; }
+  A.busy = false; render();
+}
+async function adminPickDir(){
+  var h;
+  try { h = await window.showDirectoryPicker({ id: 'jlpt-json', mode: 'readwrite' }); }
+  catch (e) { if (!e || e.name !== 'AbortError'){ A.err = ['Không mở được thư mục: ' + ((e && e.message) || e)]; render(); } return; }
+  try { await idbSet('dir', h); } catch (e) {}
+  await adminUseDir(h);
+}
+async function adminRestore(){
+  if (!canFS() || typeof indexedDB === 'undefined' || A.dir) return;
+  var h; try { h = await idbGet('dir'); } catch (e) { return; }
+  if (!h) return;
+  A.remembered = h;
+  var p = 'prompt'; try { p = await h.queryPermission({ mode: 'readwrite' }); } catch (e) {}
+  if (p === 'granted') await adminUseDir(h); else render();
+}
+async function adminGrant(){
+  var h = A.remembered, p = 'denied';
+  if (!h) return;
+  try { p = await h.requestPermission({ mode: 'readwrite' }); } catch (e) {}
+  if (p === 'granted') await adminUseDir(h); else toast('Bạn chưa cho phép truy cập thư mục.');
+}
+function readDirFallback(files){
+  var list = Array.prototype.filter.call(files || [], function(f){ return /\.json$/i.test(f.name); });
+  if (!list.length){ A.local = null; A.err = ['Không thấy tệp .json nào trong thư mục đã chọn.']; render(); return Promise.resolve(); }
+  var root = (list[0].webkitRelativePath || '').split('/')[0] || 'json';
+  return Promise.all(list.map(async function(f){
+    var rel = f.webkitRelativePath || f.name, parts = rel.split('/');
+    return { path: parts.length > 1 ? parts.slice(1).join('/') : rel, text: await f.text() };
+  })).then(function(entries){
+    var inJson = entries.filter(function(en){ return /^json\//.test(en.path); });
+    if (inJson.length){ entries = inJson.map(function(en){ return { path: en.path.replace(/^json\//, ''), text: en.text }; }); root = 'json'; }
+    A.local = { name: root, entries: entries }; A.err = null; render();
+  });
+}
+function buildListCode(){
+  var chk = checkEntries(adminSource().entries);
+  if (!chk.ok.length) return null;
+  var list = chk.ok.slice().sort(function(a, b){ return a.path.localeCompare(b.path); }).map(function(x){ return { path: x.path, text: x.text, mtime: 0 }; });
+  return { code: 'window.JLPT_FILES = ' + JSON.stringify(list).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') + ';\n', count: list.length };
+}
+async function adminSave(){
+  var b = buildListCode();
+  if (!b){ A.err = ['Chưa có đề hợp lệ nào để tạo danh sách. Hãy chọn thư mục json ở bước 1.']; render(); return; }
+  if (!A.dir) return;
+  A.busy = true; A.err = null; render();
+  try {
+    var fh = await A.dir.jsonDir.getFileHandle('_danh-sach.js', { create: true }), w = await fh.createWritable();
+    await w.write(b.code); await w.close();
+    toast('Đã lưu json/_danh-sach.js với ' + b.count + ' tệp vào thư mục “' + A.dir.jsonDir.name + '”. Giờ chỉ cần commit và push.');
+  } catch (e) { A.err = ['Không ghi được vào thư mục: ' + ((e && e.message) || e) + '. Thử bấm “Chọn thư mục json” lại và cho phép ghi.']; }
+  A.busy = false; render();
+}
+function adminDownload(){
+  var b = buildListCode();
+  if (!b){ A.err = ['Chưa có đề hợp lệ nào để tạo danh sách. Hãy chọn thư mục json ở bước 1.']; render(); return; }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([b.code], { type: 'text/javascript' }));
+  a.download = '_danh-sach.js';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
+  A.err = null; render();
+  toast('Đã tải _danh-sach.js với ' + b.count + ' tệp. Chép vào thư mục json (ghi đè tệp cũ) rồi commit và push.');
+}
+function adminHTML(){
+  var h = '<h1 class="page-title">Khu quản lý</h1>';
+  if (!A.unlocked){
+    return h + '<p class="lede">Chỉ người đăng đề mới tạo được danh sách đề. Nhập key admin rồi bấm xác nhận.</p><section class="fscard"><div class="row" style="margin:0"><label for="adminKey">Key admin</label><input id="adminKey" class="text-in" type="password" autocomplete="off" value="' + esc(A.keyIn) + '"><button type="button" class="btn primary" data-act="adminLogin">Xác nhận</button></div></section>';
+  }
+  var fs = canFS(), src = adminSource(), chk = checkEntries(src.entries), stale = !A.local && S.src && S.src.source === 'bundle';
+  var exams = chk.ok.reduce(function(a, x){ return a + x.exams; }, 0), qs = chk.ok.reduce(function(a, x){ return a + x.questions; }, 0);
+  h += '<div class="row" style="justify-content:space-between"><p class="lede" style="margin:0">Tạo tệp <strong>json/_danh-sach.js</strong> từ các tệp đề trong thư mục json' + (fs ? ' và lưu thẳng vào thư mục đó. Sau đó chỉ cần commit và push.' : '. Tải về rồi chép vào thư mục json, commit và push.') + '</p><button type="button" class="btn quiet" data-act="adminLogout">Thoát</button></div>';
+  if (A.err) h += '<div class="err" role="alert"><ul>' + A.err.map(function(e){ return '<li>' + esc(e) + '</li>'; }).join('') + '</ul></div>';
+  h += '<fieldset' + (A.busy ? ' disabled' : '') + ' style="border:0;padding:0;margin:0;min-width:0">';
+  h += '<section class="block"><h2>Bước 1: chọn thư mục json' + (fs ? '' : ' (nên làm)') + '</h2>';
+  if (fs){
+    h += '<p class="muted" style="margin-bottom:10px">Chọn thư mục <strong>json</strong> trong dự án (hoặc cả thư mục dự án). Chrome không cho chọn thẳng Desktop, Documents hay Downloads. Web nhớ thư mục này cho các lần sau.</p><div class="row">';
+    if (A.dir) h += '<span class="badge pdf">Đã chọn: ' + esc(A.dir.name) + '</span>';
+    else if (A.remembered) h += '<button type="button" class="btn primary" data-act="adminGrant">Dùng lại thư mục “' + esc(A.remembered.name) + '”</button>';
+    h += '<button type="button" class="btn' + (A.dir || A.remembered ? '' : ' primary') + '" data-act="adminPick">' + (A.dir || A.remembered ? 'Chọn thư mục khác' : 'Chọn thư mục json') + '</button></div></section>';
+  } else {
+    h += '<p class="muted" style="margin-bottom:10px">Trình duyệt này không lưu thẳng vào thư mục được (cần Chrome hoặc Edge trên máy tính), nên web sẽ tải tệp về cho bạn tự chép. Chọn thư mục <strong>json</strong> trên máy bạn để đọc đúng các tệp mới nhất; bỏ qua thì web dùng các tệp mà trang đang đọc.</p><input type="file" webkitdirectory multiple data-chg="adminDir" aria-label="Chọn thư mục json"></section>';
+  }
+  h += '<section class="block"><h2>Bước 2: tạo danh sách</h2><p class="muted" style="margin-bottom:10px">Nguồn: ' + esc(src.name) + '. ' + chk.ok.length + ' tệp hợp lệ (' + exams + ' đề, ' + qs + ' câu).</p>';
+  if (stale) h += '<p class="err" style="margin:0 0 12px">Trang đang đọc từ chính tệp _danh-sach.js cũ, nên tạo lại từ đây sẽ không có đề mới. Hãy chọn thư mục json ở bước 1.</p>';
+  if (chk.problems.length) h += '<details class="fsprob" open style="margin-bottom:12px"><summary>' + chk.problems.length + ' tệp không đọc được, sẽ không có trong danh sách</summary><ul>' + chk.problems.map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></details>';
+  var okAny = chk.ok.length && !stale;
+  if (fs) h += '<div class="row"><button type="button" class="btn primary big" data-act="adminSave"' + (A.dir && okAny ? '' : ' disabled') + '>Tạo và lưu vào thư mục</button>' + (A.dir ? '' : '<span class="muted">Hãy chọn thư mục ở bước 1 trước.</span>') + '<button type="button" class="btn quiet" data-act="adminGenerate"' + (okAny ? '' : ' disabled') + '>Chỉ tải về</button></div>';
+  else h += '<button type="button" class="btn primary big" data-act="adminGenerate"' + (okAny ? '' : ' disabled') + '>Tạo và tải _danh-sach.js</button>';
+  return h + '</section></fieldset>';
 }
 
 /* ---------- render ---------- */
@@ -1123,47 +988,27 @@ function render(){
   var app = $('#app');
   if (S.view === 'bank') app.innerHTML = bankHTML();
   else if (S.view === 'build'){ app.innerHTML = buildHTML(); updateSummary(); }
-  else if (S.view === 'import') app.innerHTML = importHTML();
+  else if (S.view === 'admin') app.innerHTML = adminHTML();
   else if (S.view === 'exam'){ app.innerHTML = examShell(); renderQuestion(); renderSheet(); renderTimer(); }
   else if (S.view === 'result') app.innerHTML = resultHTML();
 }
+function viewFromHash(h){ return h === 'quan-ly' ? 'admin' : ((h === 'bank' || h === 'build') ? h : null); }
 function goView(v){
-  S.view = v; S.importErr = null;
-  if (location.hash !== '#' + v) location.hash = v;
+  S.view = v;
+  var hh = v === 'admin' ? 'quan-ly' : v;
+  if (location.hash !== '#' + hh) location.hash = hh;
   render(); window.scrollTo(0, 0);
 }
 
 /* ---------- events ---------- */
 var actions = {
-  go: function(el){ goView(el.dataset.view); },
+  go: function(el){ goView(el.dataset.view); if (el.dataset.view === 'admin' && A.unlocked) adminRestore(); },
   toggleQ: function(el){ S.expanded[el.dataset.id] = !S.expanded[el.dataset.id]; render(); },
-  testExam: function(el){ S.build.selExams = {}; S.build.selExams[el.dataset.id] = true; S.build.selSections = null; goView('build'); },
-  exportExam: function(el){ var ex = examById(el.dataset.id); if (ex) download(safeFile(ex.name) + '.json', exportExam(ex)); },
-  delExam: function(el){
-    var ex = examById(el.dataset.id); if (!ex) return;
-    var body;
-    if (ex.file && ex.multi) body = 'Đề sẽ bị xóa khỏi trình duyệt. Tệp “' + ex.file + '” chứa nhiều đề nên web không xóa tệp, đề sẽ hiện lại khi bạn quét thư mục.';
-    else if (ex.file && dirReady()) body = 'Tệp “' + ex.file + '” sẽ bị xóa khỏi thư mục “' + S.fs.name + '” trên máy bạn và không khôi phục được.';
-    else if (ex.file) body = 'Đề sẽ bị xóa khỏi trình duyệt. Tệp “' + ex.file + '” trong thư mục không bị đụng tới, và đề sẽ hiện lại khi bạn quét thư mục lần sau.';
-    else body = 'Đề này chưa được lưu thành tệp nào, nên xóa là mất hẳn. Hãy bấm “Tải JSON” trước nếu muốn giữ.';
-    ask({ title: 'Xóa đề “' + ex.name + '”?', body: body, ok: 'Xóa đề', danger: true }).then(async function(v){
-      if (!v) return;
-      var note = 'Đã xóa đề.';
-      if (ex.file && !ex.multi && dirReady()){
-        try { await removeFile(ex.file); note = 'Đã xóa đề và tệp “' + ex.file + '”.'; }
-        catch (e) { note = 'Đã xóa trong trình duyệt nhưng không xóa được tệp: ' + ((e && e.message) || e); }
-      }
-      db.exams = db.exams.filter(function(e){ return e.id !== ex.id; });
-      db.questions = db.questions.filter(function(q){ return q.examId !== ex.id; });
-      delete S.build.selExams[ex.id]; S.build.selSections = null;
-      save(); render(); toast(note);
-    });
-  },
-  toggleSec: function(el){
-    var b = S.build, sec = el.dataset.sec;
-    if (b.selSections === null){ b.selSections = {}; availSections().forEach(function(s){ b.selSections[s.section] = true; }); }
-    b.selSections[sec] = !b.selSections[sec];
-    render();
+  testExam: function(el){ S.build.selExams = {}; S.build.selExams[el.dataset.id] = true; S.build.selSections = null; S.build.secCount = {}; goView('build'); },
+  secAll: function(el){
+    var sec = el.dataset.sec; S.build.secCount[sec] = secMax(sec);
+    var inp = document.querySelector('input[data-chg="secN"][data-sec="' + sec.replace(/"/g, '\\"') + '"]'); if (inp) inp.value = secMax(sec);
+    updateSummary();
   },
   start: function(){
     var b = S.build, qs = pickQuestions();
@@ -1187,77 +1032,51 @@ var actions = {
     startSession(makeItems(qs, ex.opts.shuffleC), { minutes: 0, shuffleC: ex.opts.shuffleC });
   },
   filter: function(el){ S.ex.filter = el.dataset.f; render(); },
-  doImport: function(){ doImport(); },
-  exportAll: function(){ download('jlpt-ngan-hang-de.json', { exams: db.exams.map(exportExam) }); },
-  copyAll: function(){ copyText(JSON.stringify({ exams: db.exams.map(exportExam) }, null, 2), 'Đã sao chép JSON.'); },
   bankLv: function(el){ S.bankLv = el.dataset.lv; render(); },
-  editExam: function(el){ var ex = examById(el.dataset.id); if (!ex) return; S.editing = ex.id; S.editBuf = { name: ex.name, level: normLevel(ex.level) }; render(); },
-  cancelEdit: function(){ S.editing = null; render(); },
-  saveEdit: async function(el){
-    var ex = examById(el.dataset.id), b = S.editBuf; if (!ex) return;
-    var name = (b.name || '').trim();
-    if (!name){ toast('Tên đề không được để trống.'); return; }
-    if (db.exams.some(function(e){ return e.id !== ex.id && e.name === name; })){ toast('Đã có một đề trùng tên này.'); return; }
-    ex.name = name; ex.level = normLevel(b.level);
-    var note = 'Đã cập nhật.';
-    if (ex.file){
-      if (ex.multi) note = 'Đã sửa trong trình duyệt. Tệp này chứa nhiều đề nên web không ghi đè, hãy sửa trực tiếp trong tệp.';
-      else if (dirReady()){
-        try { await saveExamFile(ex); note = 'Đã cập nhật và ghi vào tệp “' + ex.file + '”.'; }
-        catch (e) { note = 'Đã sửa trong trình duyệt nhưng không ghi được tệp: ' + ((e && e.message) || e); }
-      } else note = 'Đã sửa trong trình duyệt. Tệp trong thư mục chưa đổi, hãy kết nối thư mục (Chrome hoặc Edge) để ghi.';
-    }
-    save(); S.editing = null; render(); toast(note);
-  },
   selLevel: function(el){
     var lv = el.dataset.lv, b = S.build, list = db.exams.filter(function(e){ return levelKey(e) === lv; });
     var all = list.every(function(e){ return b.selExams[e.id]; });
     list.forEach(function(e){ if (all) delete b.selExams[e.id]; else b.selExams[e.id] = true; });
-    b.selSections = null; render();
+    b.selSections = null; b.secCount = {}; render();
   },
-  reloadAuto: function(){ S.fs.busy = true; render(); autoLoad(); },
-  scanBundle: async function(){
-    if (S.fs.pending){ var h = S.fs.pending; S.fs = { mode: 'dir', handle: h, name: h.name, needPerm: true, busy: false }; await grantDir(); }
-    else await connectDir();
+  adminLogin: function(){
+    if (String(A.keyIn).trim() !== ADMIN_KEY){ toast('Sai key admin.'); return; }
+    A.keyIn = ''; setUnlocked(true); render(); toast('Đã xác nhận.'); adminRestore();
   },
-  connectDir: function(){ connectDir(); },
-  grantDir: function(){ grantDir(); },
-  rescan: function(){ rescan(); },
-  forgetDir: function(){ forgetDir(); },
-  saveToDir: async function(el){
-    var ex = examById(el.dataset.id); if (!ex || !dirReady()) return;
-    try { await saveExamFile(ex); save(); render(); toast('Đã ghi tệp “' + ex.file + '”.'); }
-    catch (e) { ex.file = ''; toast('Không ghi được tệp: ' + ((e && e.message) || e)); }
-  }
+  adminLogout: function(){ setUnlocked(false); A.local = null; A.dir = null; A.err = null; goView('bank'); },
+  adminPick: function(){ adminPickDir(); },
+  adminGrant: function(){ adminGrant(); },
+  adminSave: function(){ adminSave(); },
+  adminGenerate: function(){ adminDownload(); }
 };
 var app = $('#app');
 $('#top').addEventListener('click', function(e){ var el = e.target.closest('[data-act]'); if (el && actions[el.dataset.act]) actions[el.dataset.act](el, e); });
 app.addEventListener('click', function(e){ var el = e.target.closest('[data-act]'); if (el && !el.disabled && actions[el.dataset.act]) actions[el.dataset.act](el, e); });
 app.addEventListener('change', function(e){
   var t = e.target, k = t.dataset.chg, b = S.build;
+  if (k === 'adminDir'){ readDirFallback(t.files); return; }
   if (!k) return;
-  if (k === 'roDir'){ readOnlyDir(t.files).then(function(){ try { t.value = ''; } catch (e) {} }); return; }
-  if (k === 'exam'){ if (t.checked) b.selExams[t.value] = true; else delete b.selExams[t.value]; b.selSections = null; render(); }
-  else if (k === 'count'){ b.countMode = t.value; render(); }
+  if (k === 'exam'){ if (t.checked) b.selExams[t.value] = true; else delete b.selExams[t.value]; b.selSections = null; b.secCount = {}; render(); }
+  else if (k === 'secOn'){
+    if (b.selSections === null){ b.selSections = {}; availSections().forEach(function(s){ b.selSections[s.section] = true; }); }
+    b.selSections[t.dataset.sec] = t.checked; render();
+  }
   else if (k === 'shuffleQ'){ b.shuffleQ = t.checked; }
   else if (k === 'shuffleC'){ b.shuffleC = t.checked; }
-  else if (k === 'file'){
-    var f = t.files && t.files[0]; if (!f) return;
-    var r = new FileReader();
-    r.onload = function(){
-      $('#jsonIn').value = String(r.result);
-      if (!$('#nameIn').value) $('#nameIn').value = f.name.replace(/\.json$/i, '');
-      toast('Đã đọc tệp. Bấm “Nhập vào ngân hàng” để thêm.');
-    };
-    r.readAsText(f);
-  }
 });
 app.addEventListener('input', function(e){
   var t = e.target, k = t.dataset.chg, b = S.build;
-  if (t.dataset.ed){ S.editBuf[t.dataset.ed] = t.value; return; }
-  if (k === 'n'){ b.n = Math.max(1, parseInt(t.value, 10) || 1); updateSummary(); }
+  if (t.id === 'adminKey'){ A.keyIn = t.value; return; }
+  if (k === 'secN'){
+    var sec = t.dataset.sec, max = secMax(sec), v = parseInt(t.value, 10);
+    if (isNaN(v)) v = 0;
+    if (v > max){ v = max; t.value = max; }
+    if (v < 0){ v = 0; t.value = 0; }
+    b.secCount[sec] = v; updateSummary();
+  }
   else if (k === 'minutes'){ b.minutes = Math.max(0, parseInt(t.value, 10) || 0); updateSummary(); }
 });
+app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target.id === 'adminKey'){ e.preventDefault(); actions.adminLogin(); } });
 document.addEventListener('keydown', function(e){
   if (S.view !== 'exam' || document.querySelector('.scrim')) return;
   if (e.target.matches('input,textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1270,18 +1089,19 @@ document.addEventListener('keydown', function(e){
 window.addEventListener('beforeunload', function(e){ if (S.view === 'exam'){ e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('hashchange', function(){
   if (S.view === 'exam') return;
-  var v = location.hash.replace('#', '');
-  if (['bank','build','import'].indexOf(v) >= 0 && v !== S.view){ S.view = v; S.importErr = null; render(); }
+  var v = viewFromHash(location.hash.replace('#', ''));
+  if (v && v !== S.view){ S.view = v; render(); if (v === 'admin' && A.unlocked) adminRestore(); }
 });
 
 /* ---------- start ---------- */
 load();
 fixLevels();
 ensureBuildSel();
-var h0 = location.hash.replace('#', '');
-if (['bank','build','import'].indexOf(h0) >= 0) S.view = h0;
+S.view = viewFromHash(location.hash.replace('#', '')) || 'bank';
 render();
-autoLoad().then(function(ok){ if (!ok || S.fs.mode === 'bundle') restoreDir(); });
+loadAdmin();
+autoLoad();
+if (S.view === 'admin' && A.unlocked) adminRestore();
 })();
 </script>
 </body>

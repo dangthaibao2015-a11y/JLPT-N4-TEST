@@ -486,7 +486,7 @@ function groupExams(){
 /* ---------- app state ---------- */
 var S = {
   view: 'bank', expanded: {}, importErr: null,
-  bankLv: 'all', editing: null, editBuf: null, fs: { mode: 'none', handle: null, name: '', needPerm: false, busy: false }, problems: [],
+  bankLv: 'all', editing: null, editBuf: null, fs: { mode: 'none', handle: null, name: '', needPerm: false, busy: true }, files: {}, problems: [],
   build: { selExams: {}, selSections: null, countMode: 'all', n: 20, shuffleQ: false, shuffleC: false, minutes: 0 },
   ex: null, timer: null
 };
@@ -580,8 +580,15 @@ function fsCardHTML(){
   } else if (f.mode === 'dir'){
     h += '<div><strong>Thư mục “' + esc(f.name) + '”</strong> <span class="badge pdf">Đã kết nối</span><p class="muted">' + db.exams.length + ' đề. Đề nhập mới được ghi thành tệp .json trong thư mục này.</p></div>' +
       '<div class="row" style="margin:0"><button type="button" class="btn" data-act="rescan">Quét lại</button><button type="button" class="btn" data-act="connectDir">Đổi thư mục</button><button type="button" class="btn quiet" data-act="forgetDir">Ngắt kết nối</button></div>';
+  } else if (f.mode === 'auto'){
+    var how = f.source === 'github' ? 'qua GitHub (' + esc(f.detail) + ')' : f.source === 'manifest' ? 'theo json/index.json' : 'từ danh sách thư mục của máy chủ web';
+    h += '<div><strong>Đang tự đọc thư mục json</strong> <span class="badge pdf">Tự động</span><p class="muted">' + db.exams.length + ' đề, đọc ' + how + '. Thêm tệp .json vào thư mục rồi tải lại trang là đề mới tự hiện.</p></div>' +
+      '<div class="row" style="margin:0"><button type="button" class="btn" data-act="reloadAuto">Tải lại danh sách</button>' + (canDir() ? '<button type="button" class="btn" data-act="connectDir">Cho phép ghi vào thư mục</button>' : '') + '</div>';
+  } else if (f.mode === 'bundle'){
+    h += '<div><strong>Đang đọc danh sách đã lưu trong json/_danh-sach.js</strong> <span class="badge pdf">Tự động</span><p class="muted">' + db.exams.length + ' đề. Danh sách này được cập nhật mỗi khi bạn quét thư mục hoặc nhập đề qua web. Mới chép thêm tệp .json bằng tay thì bấm “Quét thư mục” một lần để đề mới hiện ra.</p></div>' +
+      '<div class="row" style="margin:0"><button type="button" class="btn primary" data-act="scanBundle">Quét thư mục</button></div>';
   } else if (f.mode === 'ro'){
-    h += '<div><strong>Thư mục “' + esc(f.name) + '”</strong> <span class="badge manual">Chỉ đọc</span><p class="muted">' + db.exams.length + ' đề. Ở chế độ này web không tự ghi tệp được, hãy bấm “Tải JSON” rồi bỏ tệp vào thư mục.</p></div>' +
+    h += '<div><strong>Thư mục “'  + esc(f.name) + '”</strong> <span class="badge manual">Chỉ đọc</span><p class="muted">' + db.exams.length + ' đề. Ở chế độ này web không tự ghi tệp được, hãy bấm “Tải JSON” rồi bỏ tệp vào thư mục.</p></div>' +
       '<div class="row" style="margin:0">' + roPicker('Chọn lại thư mục') + '</div>';
   } else {
     h += '<div><strong>Chưa kết nối thư mục json.</strong><p class="muted">Đang hiện bản lưu trong trình duyệt. ' +
@@ -597,6 +604,7 @@ function bankHTML(){
   var h = '<h1 class="page-title">Ngân hàng đề</h1><p class="lede">Đề được đọc từ các tệp .json trong thư mục json và tự xếp theo cấp (N5 đến N1), rồi theo năm, rồi theo tháng, dựa vào tên đề dạng “N4 T7/2021”.</p>';
   if (!storageOk) h += '<div class="banner">Trình duyệt không cho lưu dữ liệu tạm. Hãy kết nối thư mục json để đề không bị mất.</div>';
   h += fsCardHTML();
+  if (S.fs.busy) return h;
   if (!db.exams.length){
     h += '<div class="empty"><p>Chưa có đề nào trong ngân hàng.</p><button type="button" class="btn primary" data-act="go" data-view="import">Nhập đề đầu tiên</button></div>';
   } else {
@@ -913,8 +921,8 @@ async function scanDir(dir, prefix, out){
     }
   }
 }
-function loadEntries(entries){
-  var exams = [], qs = [], problems = [], used = {};
+function loadEntries(entries, extra){
+  var exams = [], qs = [], problems = (extra || []).slice(), used = {};
   entries.slice().sort(function(a, b){ return a.path.localeCompare(b.path); }).forEach(function(en){
     var data;
     try { data = JSON.parse(stripFence(en.text)); }
@@ -938,7 +946,9 @@ async function rescan(){
   S.fs.busy = true; render();
   try {
     var entries = []; await scanDir(S.fs.handle, '', entries);
+    S.files = {}; entries.forEach(function(en){ S.files[en.path] = { text: en.text, mtime: en.mtime }; });
     loadEntries(entries); S.fs.busy = false; render();
+    await writeBundle();
     toast('Đã đọc ' + db.exams.length + ' đề từ thư mục “' + S.fs.name + '”.' + (S.problems.length ? ' Có ' + S.problems.length + ' tệp lỗi.' : ''));
   } catch (e){
     S.fs.busy = false;
@@ -964,9 +974,10 @@ async function restoreDir(){
   if (!canDir() || typeof indexedDB === 'undefined') return;
   var h; try { h = await idbGet('dir'); } catch (e) { return; }
   if (!h) return;
-  S.fs = { mode: 'dir', handle: h, name: h.name, needPerm: true, busy: false };
   var p = 'prompt'; try { p = await h.queryPermission({ mode: 'readwrite' }); } catch (e) {}
-  if (p === 'granted'){ S.fs.needPerm = false; await rescan(); } else render();
+  if (p === 'granted'){ S.fs = { mode: 'dir', handle: h, name: h.name, needPerm: false, busy: false }; await rescan(); return; }
+  if (S.fs.mode === 'bundle' || S.fs.mode === 'auto'){ S.fs.pending = h; render(); return; }
+  S.fs = { mode: 'dir', handle: h, name: h.name, needPerm: true, busy: false }; render();
 }
 async function forgetDir(){
   try { await idbDel('dir'); } catch (e) {}
@@ -999,7 +1010,7 @@ async function writeFile(path, text){
   var r = await dirFor(path, true), fh = await r.dir.getFileHandle(r.name, { create: true }), w = await fh.createWritable();
   await w.write(text); await w.close();
 }
-async function removeFile(path){ var r = await dirFor(path, false); await r.dir.removeEntry(r.name); }
+async function removeFile(path){ var r = await dirFor(path, false); await r.dir.removeEntry(r.name); delete S.files[path]; await writeBundle(); }
 async function saveExamFile(ex){
   var json = JSON.stringify(exportExam(ex), null, 2);
   if (!ex.file){
@@ -1008,6 +1019,102 @@ async function saveExamFile(ex){
     ex.file = path;
   }
   await writeFile(ex.file, json);
+  S.files[ex.file] = { text: json, mtime: Date.now() };
+  await writeBundle();
+}
+
+/* ---------- tự nạp thư mục json ---------- */
+async function fetchText(url){
+  var r = await fetch(url, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.text();
+}
+async function listByIndexPage(dirUrl, depth){
+  var html = await fetchText(dirUrl), dirPath = new URL(dirUrl).pathname, out = [];
+  var doc = new DOMParser().parseFromString(html, 'text/html');
+  var links = Array.prototype.slice.call(doc.querySelectorAll('a[href]'));
+  for (var i = 0; i < links.length; i++){
+    var href = links[i].getAttribute('href');
+    if (!href || href.charAt(0) === '#' || href.charAt(0) === '?') continue;
+    var u; try { u = new URL(href, dirUrl); } catch (e) { continue; }
+    if (u.origin !== new URL(dirUrl).origin || u.pathname.indexOf(dirPath) !== 0 || u.pathname === dirPath) continue;
+    if (/\.json$/i.test(u.pathname)) out.push(u.href);
+    else if (/\/$/.test(u.pathname) && depth < 3) out = out.concat(await listByIndexPage(u.href, depth + 1));
+  }
+  return out;
+}
+async function listByGithub(){
+  var h = location.hostname;
+  if (!/\.github\.io$/i.test(h)) return null;
+  var owner = h.split('.')[0], first = location.pathname.split('/').filter(Boolean)[0];
+  var repo = first && !/\.html?$/i.test(first) ? first : owner + '.github.io';
+  async function walk(p, depth){
+    var r = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + p);
+    if (!r.ok) throw new Error('GitHub ' + r.status);
+    var items = await r.json(), out = [];
+    for (var i = 0; i < items.length; i++){
+      if (items[i].type === 'file' && /\.json$/i.test(items[i].name)) out.push(new URL(items[i].path, location.href).href);
+      else if (items[i].type === 'dir' && depth < 3) out = out.concat(await walk(items[i].path, depth + 1));
+    }
+    return out;
+  }
+  return { urls: await walk('json', 0), repo: owner + '/' + repo };
+}
+async function listByManifest(){
+  var d = JSON.parse(await fetchText(new URL('json/index.json', location.href).href));
+  var names = Array.isArray(d) ? d : (d && d.files) || [];
+  return names.map(function(n){ return new URL('json/' + n, location.href).href; });
+}
+function loadBundle(){
+  return new Promise(function(res){
+    if (Array.isArray(window.JLPT_FILES)){ res(window.JLPT_FILES); return; }
+    var sc = document.createElement('script');
+    sc.src = 'json/_danh-sach.js';
+    sc.onload = function(){ res(Array.isArray(window.JLPT_FILES) ? window.JLPT_FILES : null); };
+    sc.onerror = function(){ res(null); };
+    setTimeout(function(){ res(null); }, 4000);
+    document.head.appendChild(sc);
+  });
+}
+async function loadByHttp(){
+  if (typeof fetch === 'undefined') return null;
+  var base = new URL('json/', location.href), urls = null, source = '', detail = '';
+  try { urls = await listByIndexPage(base.href, 0); if (urls.length) source = 'listing'; } catch (e) { urls = null; }
+  if (!urls || !urls.length){
+    try { var g = await listByGithub(); if (g && g.urls.length){ urls = g.urls; source = 'github'; detail = g.repo; } } catch (e) { urls = null; }
+  }
+  if (!urls || !urls.length){
+    try { urls = await listByManifest(); if (urls.length) source = 'manifest'; } catch (e) { urls = null; }
+  }
+  if (!urls || !urls.length){
+    var b = await loadBundle();
+    return b ? { entries: b, problems: [], source: 'bundle' } : null;
+  }
+  var problems = [], entries = [];
+  await Promise.all(urls.map(async function(u){
+    var rel = decodeURIComponent(new URL(u).pathname.slice(base.pathname.length));
+    try { entries.push({ path: rel, text: await fetchText(u), mtime: Date.now() }); }
+    catch (e) { problems.push(rel + ': không tải được (' + ((e && e.message) || e) + ')'); }
+  }));
+  return { entries: entries, problems: problems, source: source, detail: detail };
+}
+async function autoLoad(){
+  var res = null;
+  var work = /^https?:$/.test(location.protocol) ? loadByHttp() : loadBundle().then(function(b){ return b ? { entries: b, problems: [], source: 'bundle' } : null; });
+  try { res = await Promise.race([work, new Promise(function(r){ setTimeout(function(){ r(null); }, 20000); })]); }
+  catch (e) { res = null; }
+  if (res){
+    loadEntries(res.entries, res.problems);
+    S.fs = { mode: res.source === 'bundle' ? 'bundle' : 'auto', source: res.source, detail: res.detail || '', name: 'json', handle: null, needPerm: false, busy: false, pending: S.fs.pending || null };
+    render(); return true;
+  }
+  S.fs.busy = false; render(); return false;
+}
+async function writeBundle(){
+  if (!dirReady()) return;
+  var list = Object.keys(S.files).sort().map(function(p){ return { path: p, text: S.files[p].text, mtime: S.files[p].mtime }; });
+  var code = 'window.JLPT_FILES = ' + JSON.stringify(list).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') + ';\n';
+  try { await writeFile('_danh-sach.js', code); } catch (e) {}
 }
 
 /* ---------- render ---------- */
@@ -1108,6 +1215,11 @@ var actions = {
     list.forEach(function(e){ if (all) delete b.selExams[e.id]; else b.selExams[e.id] = true; });
     b.selSections = null; render();
   },
+  reloadAuto: function(){ S.fs.busy = true; render(); autoLoad(); },
+  scanBundle: async function(){
+    if (S.fs.pending){ var h = S.fs.pending; S.fs = { mode: 'dir', handle: h, name: h.name, needPerm: true, busy: false }; await grantDir(); }
+    else await connectDir();
+  },
   connectDir: function(){ connectDir(); },
   grantDir: function(){ grantDir(); },
   rescan: function(){ rescan(); },
@@ -1169,7 +1281,7 @@ ensureBuildSel();
 var h0 = location.hash.replace('#', '');
 if (['bank','build','import'].indexOf(h0) >= 0) S.view = h0;
 render();
-restoreDir();
+autoLoad().then(function(ok){ if (!ok || S.fs.mode === 'bundle') restoreDir(); });
 })();
 </script>
 </body>

@@ -4,22 +4,28 @@
 
 ```
 jlpt-test/
-├── index.html      Cả web nằm trong file này
-├── json/           Mỗi đề là một tệp .json nằm trong đây
-│   └── N4 T7-2021.json
+├── index.html            Cả web nằm trong file này
+├── json/                 Mỗi đề là một tệp .json nằm trong đây
+│   ├── jlpt_n4_2010_2011.json
+│   ├── ...
+│   └── _danh-sach.js     Danh sách tự tạo, để mở bằng nhấp đúp là thấy đề ngay (đừng xóa)
 └── README.md
 ```
 
-## Cách dùng
+## Web tự hiện đề trong thư mục json như thế nào
 
-1. Giải nén, nhấp đúp `index.html` để mở bằng **Chrome hoặc Edge**.
-2. Ở tab **Ngân hàng đề**, bấm **Chọn thư mục json**, chọn thư mục `json` trong thư mục này, rồi bấm Cho phép. Web đọc mọi tệp .json trong đó (kể cả thư mục con).
-3. Lần sau mở lại, nếu trình duyệt hỏi quyền thì bấm **Cho phép và đọc thư mục**, một lần là xong.
+| Cách bạn mở web | Đề có trong thư mục json |
+|---|---|
+| VS Code **Live Server**, hoặc bất kỳ máy chủ web nào (ví dụ `python -m http.server`) | Tự quét thư mục `json`. Thêm tệp rồi **tải lại trang** là thấy. |
+| **GitHub Pages** (`tên.github.io/tên-repo`) | Tự lấy danh sách tệp trong thư mục `json` của repo qua GitHub. Đẩy tệp mới lên (push) rồi tải lại trang là thấy. |
+| **Nhấp đúp** `index.html` (địa chỉ `file://`) | Trình duyệt không cho tự đọc thư mục, nên web đọc `json/_danh-sach.js`. Mở lên là thấy đề, không cần bấm gì. |
+
+Chỉ riêng trường hợp **nhấp đúp** và bạn **tự chép thêm tệp .json bằng tay** thì `_danh-sach.js` chưa có đề mới. Khi đó vào tab **Ngân hàng đề**, bấm **Quét thư mục**, chọn thư mục `json` và bấm Cho phép (Chrome hoặc Edge). Web đọc lại thư mục và tự cập nhật `_danh-sach.js`, các lần mở sau không cần bấm nữa.
 
 ## Thêm đề
 
-- **Cách 1:** chép tệp .json vào thư mục `json`, rồi bấm **Quét lại** ở tab Ngân hàng đề.
-- **Cách 2:** vào tab **Nhập đề**, dán JSON. Khi đã kết nối thư mục, web tự ghi mỗi đề thành một tệp trong `json`.
+- **Cách 1:** chép tệp .json vào thư mục `json` (rồi tải lại trang, hoặc bấm Quét thư mục nếu mở bằng nhấp đúp).
+- **Cách 2:** tab **Nhập đề**, dán JSON. Nếu đã cho phép ghi vào thư mục (Chrome hoặc Edge), web tự ghi tệp vào `json` và cập nhật `_danh-sach.js`.
 
 Đặt tên đề dạng `N4 T7/2021` để web tự xếp đề theo cấp, năm, tháng.
 
@@ -51,9 +57,8 @@ jlpt-test/
 
 ## Lưu ý
 
-- Ghi và xóa tệp trong thư mục chỉ làm được trên Chrome hoặc Edge (máy tính). Firefox và Safari chỉ có chế độ **chỉ đọc**: chọn thư mục để đọc, còn đề mới thì bấm "Tải JSON" rồi tự bỏ tệp vào `json`.
+- Ghi và xóa tệp trong thư mục chỉ làm được trên Chrome hoặc Edge (máy tính) sau khi bạn cho phép. Các trường hợp khác web chỉ đọc, đề mới thì bấm "Tải JSON" rồi tự bỏ tệp vào `json`.
 - Chrome không cho chọn thẳng các thư mục như Desktop, Documents, Downloads. Hãy chọn thư mục con `json`.
-- **Xóa đề trong web là xóa tệp thật** trong thư mục, không qua thùng rác.
-- Tệp nào lỗi (JSON sai, thiếu đáp án…) sẽ được liệt kê ở mục “tệp không đọc được” ngay trên tab Ngân hàng đề.
-- Web giữ thêm một bản sao trong trình duyệt để mở lên là thấy ngay, nhưng thư mục `json` mới là bản gốc: quét lại là web lấy theo thư mục.
-- Font dùng bộ メイリオ (Meiryo) có sẵn trên Windows nên không cần mạng. Máy Mac không có Meiryo thì web tự dùng font không chân mặc định của hệ thống.
+- **Xóa đề trong web là xóa tệp thật** (khi đã cho phép ghi), không qua thùng rác.
+- Tệp nào lỗi (JSON sai, thiếu đáp án…) được liệt kê ở mục “tệp không đọc được” ngay trên tab Ngân hàng đề.
+- Font dùng bộ メイリオ (Meiryo) có sẵn trên Windows nên không cần mạng.

@@ -416,7 +416,7 @@ var S = {
   hist: { loading: false, err: '', stats: null, items: null },
   acct: { msg: '', err: '', busy: false },
   adm: { tab: 'exams', loading: false, busy: false, err: '', exams: null, users: null, results: null, jsonIn: '', nameIn: '', errs: null, editing: null, editBuf: null, tempPw: null },
-  build: { level: '', selExams: {}, selSections: null, secCount: {}, shuffleQ: false, minutes: 0 },
+  build: { level: '', selExams: {}, selSections: null, secCount: {}, shuffleQ: true, minutes: 0 },
   ex: null, timer: null
 };
 function selCount(o){ return Object.keys(o).filter(function(k){ return o[k]; }).length; }

@@ -458,9 +458,11 @@ function ask(o){
 
 /* ---------- header ---------- */
 function brandHTML(){
+  var name = '<span class="brand-jp" lang="ja">模試</span><span>Luyện đề JLPT</span>';
+  if (!S.user) return '<div class="brand">' + name + '</div>';
   var logo = '<span class="logo-plate"><img class="logo-img" src="/logo.png" width="105" height="34" alt="ACT Brain Vietnam"></span>';
-  var home = (S.user && S.view !== 'exam') ? '<button type="button" class="logo-btn" data-act="go" data-view="bank" title="Về Ngân hàng đề">' + logo + '</button>' : logo;
-  return '<div class="brand">' + home + '<span class="brand-sep" aria-hidden="true"></span><span class="brand-jp" lang="ja">模試</span><span>Luyện đề JLPT</span></div>';
+  var home = S.view !== 'exam' ? '<button type="button" class="logo-btn" data-act="go" data-view="bank" title="Về Ngân hàng đề">' + logo + '</button>' : logo;
+  return '<div class="brand">' + home + '<span class="brand-sep" aria-hidden="true"></span>' + name + '</div>';
 }
 function renderHeader(){
   var h = '<div class="top-in">' + brandHTML();

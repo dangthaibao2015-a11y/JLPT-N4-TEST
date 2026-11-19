@@ -458,11 +458,7 @@ function ask(o){
 
 /* ---------- header ---------- */
 function brandHTML(){
-  var name = '<span class="brand-jp" lang="ja">模試</span><span>Luyện đề JLPT</span>';
-  if (!S.user) return '<div class="brand">' + name + '</div>';
-  var logo = '<span class="logo-plate"><img class="logo-img" src="/logo.png" width="105" height="34" alt="ACT Brain Vietnam"></span>';
-  var home = S.view !== 'exam' ? '<button type="button" class="logo-btn" data-act="go" data-view="bank" title="Về Ngân hàng đề">' + logo + '</button>' : logo;
-  return '<div class="brand">' + home + '<span class="brand-sep" aria-hidden="true"></span>' + name + '</div>';
+  return '<div class="brand"><span class="brand-jp" lang="ja">模試</span><span>Luyện đề JLPT</span></div>';
 }
 function renderHeader(){
   var h = '<div class="top-in">' + brandHTML();
@@ -841,7 +837,7 @@ async function doAuth(form){
 }
 function authHTML(){
   var reg = S.authTab === 'register';
-  var h = '<div class="auth"><div class="auth-logo"><span class="logo-plate"><img src="/logo.png" width="160" height="52" alt="ACT Brain Vietnam"></span></div><h1 class="page-title">' + (reg ? 'Tạo tài khoản' : 'Đăng nhập') + '</h1><p class="lede">' + (reg ? 'Tạo tài khoản để thi và lưu lại kết quả làm bài.' : 'Đăng nhập để thi và lưu lại kết quả làm bài.') + '</p>';
+  var h = '<div class="auth"><h1 class="page-title">' + (reg ? 'Tạo tài khoản' : 'Đăng nhập') + '</h1><p class="lede">' + (reg ? 'Tạo tài khoản để thi và lưu lại kết quả làm bài.' : 'Đăng nhập để thi và lưu lại kết quả làm bài.') + '</p>';
   h += '<div class="seg" role="group" aria-label="Chọn"><button type="button" data-act="authTab" data-t="login" aria-pressed="' + (!reg) + '">Đăng nhập</button><button type="button" data-act="authTab" data-t="register" aria-pressed="' + reg + '">Tạo tài khoản</button></div>';
   if (S.authErr) h += '<div class="err" role="alert" style="max-width:420px">' + esc(S.authErr) + '</div>';
   h += '<form class="authform" data-form="auth" novalidate><fieldset' + (S.authBusy ? ' disabled' : '') + ' style="border:0;padding:0;margin:0;min-width:0;display:grid;gap:14px">' +

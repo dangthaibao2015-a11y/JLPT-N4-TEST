@@ -283,6 +283,20 @@ textarea.fld{resize:vertical;line-height:1.7}
   .brand-jp,.brand-sep{display:none}
   .logo-img{height:30px}
 }
+/* hoc chu */
+.kgroup{margin:10px 0 14px}
+.kgroup>.btn{margin-bottom:6px}
+.kana-card{background:var(--card);border:1px solid var(--ink);border-radius:4px;padding:22px 26px 26px;max-width:520px;text-align:center}
+.kana-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.kinput{max-width:260px;text-align:center;font-size:1.5rem;padding:10px 12px}
+.kana{font-family:var(--jp);font-size:clamp(5rem,26vw,9rem);line-height:1.15;margin:10px 0 14px}
+.kfb{margin:0 0 8px;font-size:1.05rem}
+.kfb.ok{color:var(--ok)}
+.kfb.bad{color:var(--bad)}
+.kwrong{display:flex;flex-wrap:wrap;gap:10px}
+.kw{display:grid;justify-items:center;border:1px solid var(--line);border-radius:6px;background:var(--card);padding:8px 14px;min-width:64px}
+.kw .jp{font-size:2rem;line-height:1.2}
+.kw small{color:var(--ink-2)}
 /* dialog + toast */
 .scrim{position:fixed;inset:0;background:rgba(10,14,22,.55);display:grid;place-items:center;z-index:50;padding:20px}
 .dlg{background:var(--card);border:1px solid var(--ink);border-radius:6px;padding:24px;max-width:420px;width:100%}
@@ -465,7 +479,7 @@ function renderHeader(){
   if (S.user && S.view === 'exam'){
     h += '<div class="top-tools"><span class="timer" id="timer"></span><button type="button" class="btn quiet" data-act="exit">Thoát</button><button type="button" class="btn primary" data-act="submit">Nộp bài</button></div>';
   } else if (S.user){
-    var tabs = [['bank','Ngân hàng đề'],['build','Tạo bài thi'],['history','Lịch sử']];
+    var tabs = [['bank','Ngân hàng đề'],['build','Tạo bài thi'],['kana','Học chữ'],['history','Lịch sử']];
     if (S.user.isAdmin) tabs.push(['admin','Quản lý']);
     h += '<nav class="tabs" aria-label="Chính">' + tabs.map(function(t){
       return '<button type="button" class="tab" data-act="go" data-view="' + t[0] + '"' + (S.view === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>';
@@ -817,7 +831,7 @@ function sessionExpired(){
 function clearData(){
   db.exams = []; db.questions = []; S.problems = [];
   S.build.level = ''; S.build.selExams = {}; S.build.selSections = null; S.build.secCount = {};
-  S.expanded = {}; stopTimer(); S.ex = null; S.view = 'bank';
+  S.expanded = {}; stopTimer(); S.ex = null; S.view = 'bank'; S.kana = null;
   S.hist = { loading: false, err: '', stats: null, items: null };
   S.adm = { tab: 'exams', loading: false, busy: false, err: '', exams: null, users: null, results: null, jsonIn: '', nameIn: '', errs: null, editing: null, editBuf: null, tempPw: null };
 }
@@ -1088,6 +1102,141 @@ function adminHTML(){
   return h + '</fieldset>';
 }
 
+/* ---------- học chữ: Hiragana, Katakana ---------- */
+var KANA_DELAY = 450;
+var KANA_ROWS = (function(){
+  var def = [
+    ['basic', 'あ=a,い=i,う=u,え=e,お=o'], ['basic', 'か=ka,き=ki,く=ku,け=ke,こ=ko'], ['basic', 'さ=sa,し=shi/si,す=su,せ=se,そ=so'],
+    ['basic', 'た=ta,ち=chi/ti,つ=tsu/tu,て=te,と=to'], ['basic', 'な=na,に=ni,ぬ=nu,ね=ne,の=no'], ['basic', 'は=ha,ひ=hi,ふ=fu/hu,へ=he,ほ=ho'],
+    ['basic', 'ま=ma,み=mi,む=mu,め=me,も=mo'], ['basic', 'や=ya,ゆ=yu,よ=yo'], ['basic', 'ら=ra,り=ri,る=ru,れ=re,ろ=ro'], ['basic', 'わ=wa,を=wo/o,ん=n/nn'],
+    ['dakuten', 'が=ga,ぎ=gi,ぐ=gu,げ=ge,ご=go'], ['dakuten', 'ざ=za,じ=ji/zi,ず=zu,ぜ=ze,ぞ=zo'], ['dakuten', 'だ=da,ぢ=ji/di/zi,づ=zu/du,で=de,ど=do'],
+    ['dakuten', 'ば=ba,び=bi,ぶ=bu,べ=be,ぼ=bo'], ['dakuten', 'ぱ=pa,ぴ=pi,ぷ=pu,ぺ=pe,ぽ=po'],
+    ['combo', 'きゃ=kya,きゅ=kyu,きょ=kyo'], ['combo', 'しゃ=sha/sya,しゅ=shu/syu,しょ=sho/syo'], ['combo', 'ちゃ=cha/tya/cya,ちゅ=chu/tyu/cyu,ちょ=cho/tyo/cyo'],
+    ['combo', 'にゃ=nya,にゅ=nyu,にょ=nyo'], ['combo', 'ひゃ=hya,ひゅ=hyu,ひょ=hyo'], ['combo', 'みゃ=mya,みゅ=myu,みょ=myo'],
+    ['combo', 'りゃ=rya,りゅ=ryu,りょ=ryo'], ['combo', 'ぎゃ=gya,ぎゅ=gyu,ぎょ=gyo'], ['combo', 'じゃ=ja/jya/zya,じゅ=ju/jyu/zyu,じょ=jo/jyo/zyo'],
+    ['combo', 'びゃ=bya,びゅ=byu,びょ=byo'], ['combo', 'ぴゃ=pya,ぴゅ=pyu,ぴょ=pyo']
+  ];
+  return def.map(function(d, i){
+    return { id: 'r' + i, g: d[0], items: d[1].split(',').map(function(x){ var a = x.split('='); return [a[0], a[1].split('/')]; }) };
+  });
+})();
+var KANA_GROUPS = [['basic', 'Cơ bản'], ['dakuten', 'Đục và bán đục'], ['combo', 'Âm ghép']];
+function toKata(t){ return t.replace(/[\u3041-\u3096]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) + 0x60); }); }
+function kst(){
+  if (!S.kana){
+    var rows = {};
+    KANA_ROWS.forEach(function(r){ if (r.g === 'basic') rows[r.id] = true; });
+    S.kana = { cfg: { script: 'hira', rows: rows, order: 'seq', count: 20 }, run: null };
+  }
+  return S.kana;
+}
+function kanaPool(cfg){
+  var out = [], scripts = cfg.script === 'both' ? ['hira', 'kata'] : [cfg.script];
+  scripts.forEach(function(sc){
+    KANA_ROWS.forEach(function(r){
+      if (!cfg.rows[r.id]) return;
+      r.items.forEach(function(it){ out.push({ id: sc + ':' + it[0], ch: sc === 'kata' ? toKata(it[0]) : it[0], sc: sc, ans: it[1] }); });
+    });
+  });
+  return out;
+}
+function kanaStart(items, cfg){
+  var deck = cfg.order === 'rand' ? shuffle(items) : items.slice();
+  if (cfg.count > 0) deck = deck.slice(0, cfg.count);
+  kst().run = { cfg: cfg, queue: deck.slice(), pos: 0, total: deck.length, seen: {}, seenCount: 0, wrong: {}, wrongList: [], correct: 0, state: 'ask', msg: '', lock: false, start: Date.now(), end: 0 };
+}
+function kanaFocus(){ var i = $('.kinput'); if (i && !i.readOnly) i.focus(); }
+function kanaNormalize(v){ return String(v || '').toLowerCase().replace(/[^a-z]/g, ''); }
+function kanaNext(){
+  var r = kst().run; if (!r) return;
+  r.pos++; r.state = 'ask'; r.msg = ''; r.lock = false;
+  if (r.pos >= r.queue.length){ r.state = 'done'; r.end = Date.now(); }
+  render();
+}
+function kanaMarkSeen(r, it){
+  if (!r.seen[it.id]){ r.seen[it.id] = true; r.seenCount++; return true; }
+  return false;
+}
+function kanaFail(r, it){
+  var first = kanaMarkSeen(r, it);
+  r.wrong[it.id] = (r.wrong[it.id] || 0) + 1;
+  if (first) r.wrongList.push(it);
+  r.state = 'wrong'; r.msg = '';
+}
+function kanaCheck(form){
+  var r = kst().run; if (!r || r.lock || r.state === 'done') return;
+  var v = kanaNormalize(new FormData(form).get('ans')), it = r.queue[r.pos];
+  if (!v) return;
+  var ok = it.ans.indexOf(v) >= 0;
+  if (r.state === 'ask'){
+    if (ok){
+      if (kanaMarkSeen(r, it) && !r.wrong[it.id]) r.correct++;
+      r.state = 'ok'; r.lock = true; render(); setTimeout(kanaNext, KANA_DELAY);
+    } else { kanaFail(r, it); render(); }
+  } else if (r.state === 'wrong'){
+    if (ok){
+      if (r.wrong[it.id] < 3) r.queue.splice(Math.min(r.pos + 4, r.queue.length), 0, it);
+      kanaNext();
+    } else { r.msg = 'Chưa đúng, hãy gõ lại cách đọc ở trên.'; render(); }
+  }
+}
+function kanaSkip(){
+  var r = kst().run; if (!r || r.lock || r.state !== 'ask') return;
+  kanaFail(r, r.queue[r.pos]); render();
+}
+function kanaRowLabel(r){
+  var t = r.items.map(function(i){ return i[0]; }).join('');
+  return kst().cfg.script === 'kata' ? toKata(t) : t;
+}
+function kanaSetupHTML(){
+  var c = kst().cfg, pool = kanaPool(c);
+  var h = '<h1 class="page-title">Học chữ</h1><p class="lede">Hiện một chữ Hiragana hoặc Katakana, bạn gõ cách đọc bằng chữ Latin (ví dụ あ gõ <strong>a</strong>). Không cần bàn phím tiếng Nhật.</p>';
+  h += '<section class="field"><h2>Bộ chữ</h2><div class="chips" role="group" aria-label="Bộ chữ">' + [['hira', 'Hiragana'], ['kata', 'Katakana'], ['both', 'Cả hai']].map(function(x){
+    return '<button type="button" class="chip" data-act="kanaScript" data-v="' + x[0] + '" aria-pressed="' + (c.script === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></section>';
+  h += '<section class="field"><h2>Chọn hàng chữ</h2><p class="hint">Bấm tên nhóm để chọn hoặc bỏ cả nhóm, bấm từng hàng để chọn riêng.</p>';
+  KANA_GROUPS.forEach(function(g){
+    var rows = KANA_ROWS.filter(function(r){ return r.g === g[0]; }), all = rows.every(function(r){ return c.rows[r.id]; });
+    h += '<div class="kgroup"><button type="button" class="btn quiet" data-act="kanaGroup" data-g="' + g[0] + '" aria-pressed="' + all + '">' + (all ? 'Bỏ chọn ' : 'Chọn cả ') + g[1].toLowerCase() + '</button><div class="chips">' +
+      rows.map(function(r){ return '<button type="button" class="chip jp" lang="ja" data-act="kanaRow" data-r="' + r.id + '" aria-pressed="' + (!!c.rows[r.id]) + '">' + esc(kanaRowLabel(r)) + '</button>'; }).join('') + '</div></div>';
+  });
+  h += '</section><section class="field"><h2>Thứ tự</h2><div class="chips" role="group" aria-label="Thứ tự">' + [['seq', 'Theo bảng chữ'], ['rand', 'Ngẫu nhiên']].map(function(x){
+    return '<button type="button" class="chip" data-act="kanaOrder" data-v="' + x[0] + '" aria-pressed="' + (c.order === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></section>';
+  h += '<section class="field"><h2>Số chữ mỗi lượt</h2><div class="chips" role="group" aria-label="Số chữ">' + [[10, '10 chữ'], [20, '20 chữ'], [0, 'Tất cả']].map(function(x){
+    return '<button type="button" class="chip" data-act="kanaCount" data-v="' + x[0] + '" aria-pressed="' + (c.count === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></section>';
+  var n = c.count > 0 ? Math.min(c.count, pool.length) : pool.length;
+  h += '<div class="row"><button type="button" class="btn primary big" data-act="kanaStart"' + (pool.length ? '' : ' disabled') + '>Bắt đầu</button><span class="muted">' + (pool.length ? 'Lượt này có ' + n + ' chữ (trong ' + pool.length + ' chữ đã chọn).' : 'Hãy chọn ít nhất một hàng chữ.') + '</span></div>';
+  return h;
+}
+function kanaRunHTML(r){
+  var it = r.queue[r.pos], ok = r.state === 'ok', bad = r.state === 'wrong';
+  var h = '<div class="kana-card"><div class="kana-top"><span class="badge manual">' + (it.sc === 'kata' ? 'Katakana' : 'Hiragana') + '</span><span class="muted">Chữ ' + Math.min(r.seenCount + (r.seen[it.id] ? 0 : 1), r.total) + '/' + r.total + '</span></div>' +
+    '<div class="track" style="margin:10px 0 0"><div class="fill" style="width:' + Math.round(r.seenCount / r.total * 100) + '%"></div></div>' +
+    '<div class="kana" lang="ja">' + esc(it.ch) + '</div>';
+  if (bad) h += '<p class="kfb bad" role="status">Sai rồi. Cách đọc đúng: <strong>' + esc(it.ans[0]) + '</strong>' + (it.ans.length > 1 ? ' (hoặc ' + esc(it.ans.slice(1).join(', ')) + ')' : '') + '</p><p class="muted" style="margin:0 0 8px">Gõ lại cách đọc đúng để nhớ.</p>' + (r.msg ? '<p class="kfb bad" role="status">' + esc(r.msg) + '</p>' : '');
+  else if (ok) h += '<p class="kfb ok" role="status">Đúng rồi: <strong>' + esc(it.ans[0]) + '</strong></p>';
+  else h += '<p class="muted" style="margin:0 0 8px">Gõ cách đọc của chữ này</p>';
+  h += '<form data-form="kana" autocomplete="off"><input class="fld kinput" name="ans" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Cách đọc"' + (ok ? ' readonly' : '') + '>' +
+    '<div class="row" style="justify-content:center;margin:14px 0 0"><button type="submit" class="btn primary"' + (ok ? ' disabled' : '') + '>' + (bad ? 'Tiếp' : 'Kiểm tra') + '</button>' +
+    (r.state === 'ask' ? '<button type="button" class="btn quiet" data-act="kanaSkip">Không biết</button>' : '') + '<button type="button" class="btn quiet" data-act="kanaSetup">Dừng</button></div></form></div>';
+  return h;
+}
+function kanaDoneHTML(r){
+  var h = '<h1 class="page-title">Xong rồi</h1>', n = r.total;
+  h += '<div class="stats"><div class="stat"><b>' + r.correct + '/' + n + '</b><span>Đúng ngay lần đầu</span></div><div class="stat"><b>' + pct(r.correct, n) + '%</b><span>Tỉ lệ đúng</span></div><div class="stat"><b>' + fmt((r.end - r.start) / 1000) + '</b><span>Thời gian</span></div></div>';
+  if (r.wrongList.length){
+    h += '<section class="block"><h2>Các chữ chưa đúng</h2><div class="kwrong">' + r.wrongList.map(function(it){ return '<span class="kw"><span class="jp" lang="ja">' + esc(it.ch) + '</span><small>' + esc(it.ans[0]) + '</small></span>'; }).join('') + '</div></section>';
+  } else h += '<p class="savebar ok">Không sai chữ nào.</p>';
+  h += '<div class="actions">' + (r.wrongList.length ? '<button type="button" class="btn primary" data-act="kanaRetryWrong">Luyện lại các chữ sai</button>' : '') +
+    '<button type="button" class="btn' + (r.wrongList.length ? '' : ' primary') + '" data-act="kanaAgain">Làm lại lượt này</button><button type="button" class="btn quiet" data-act="kanaSetup">Chọn bộ chữ khác</button></div>';
+  return h;
+}
+function kanaHTML(){
+  var r = kst().run;
+  if (!r) return kanaSetupHTML();
+  if (r.state === 'done') return kanaDoneHTML(r);
+  return kanaRunHTML(r);
+}
+
 /* ---------- render ---------- */
 function render(){
   renderHeader();
@@ -1098,11 +1247,12 @@ function render(){
   else if (S.view === 'build'){ app.innerHTML = buildHTML(); updateSummary(); }
   else if (S.view === 'exam'){ app.innerHTML = examShell(); renderQuestion(); renderSheet(); renderTimer(); }
   else if (S.view === 'result') app.innerHTML = resultHTML();
+  else if (S.view === 'kana'){ app.innerHTML = kanaHTML(); kanaFocus(); }
   else if (S.view === 'history') app.innerHTML = histHTML();
   else if (S.view === 'account') app.innerHTML = accountHTML();
   else if (S.view === 'admin') app.innerHTML = S.user.isAdmin ? adminHTML() : '<div class="empty"><p>Bạn không có quyền vào khu này.</p></div>';
 }
-function viewFromHash(h){ return ['bank', 'build', 'history', 'account', 'admin'].indexOf(h) >= 0 ? h : null; }
+function viewFromHash(h){ return ['bank', 'build', 'kana', 'history', 'account', 'admin'].indexOf(h) >= 0 ? h : null; }
 function goView(v){
   S.view = v;
   if (location.hash !== '#' + v) location.hash = v;
@@ -1192,6 +1342,19 @@ var actions = {
   },
   admCopyPw: function(){ if (S.adm.tempPw) copyText(S.adm.tempPw.password, 'Đã sao chép mật khẩu tạm.'); },
   admClosePw: function(){ S.adm.tempPw = null; render(); },
+  kanaScript: function(el){ kst().cfg.script = el.dataset.v; render(); },
+  kanaGroup: function(el){
+    var c = kst().cfg, rows = KANA_ROWS.filter(function(r){ return r.g === el.dataset.g; }), all = rows.every(function(r){ return c.rows[r.id]; });
+    rows.forEach(function(r){ if (all) delete c.rows[r.id]; else c.rows[r.id] = true; }); render();
+  },
+  kanaRow: function(el){ var c = kst().cfg; if (c.rows[el.dataset.r]) delete c.rows[el.dataset.r]; else c.rows[el.dataset.r] = true; render(); },
+  kanaOrder: function(el){ kst().cfg.order = el.dataset.v; render(); },
+  kanaCount: function(el){ kst().cfg.count = +el.dataset.v; render(); },
+  kanaStart: function(){ var c = kst().cfg, pool = kanaPool(c); if (!pool.length) return; kanaStart(pool, c); render(); },
+  kanaSkip: function(){ kanaSkip(); },
+  kanaSetup: function(){ kst().run = null; render(); },
+  kanaAgain: function(){ var c = kst().cfg; kanaStart(kanaPool(c), c); render(); },
+  kanaRetryWrong: function(){ var r = kst().run; if (!r || !r.wrongList.length) return; kanaStart(r.wrongList.slice(), { script: r.cfg.script, rows: r.cfg.rows, order: 'rand', count: 0 }); render(); },
   authTab: function(el){ S.authTab = el.dataset.t; S.authErr = ''; render(); },
   logout: function(){
     api('POST', '/api/auth?action=logout', {}).catch(function(){}).then(function(){
@@ -1240,7 +1403,9 @@ app.addEventListener('submit', function(e){
   var f = e.target.closest('form[data-form="auth"]');
   if (f){ e.preventDefault(); doAuth(f); return; }
   var g = e.target.closest('form[data-form="pw"]');
-  if (g){ e.preventDefault(); doChangePw(g); }
+  if (g){ e.preventDefault(); doChangePw(g); return; }
+  var kf = e.target.closest('form[data-form="kana"]');
+  if (kf){ e.preventDefault(); kanaCheck(kf); }
 });
 document.addEventListener('keydown', function(e){
   if (S.view !== 'exam' || document.querySelector('.scrim')) return;

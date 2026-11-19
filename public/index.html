@@ -235,6 +235,54 @@ textarea.fld{resize:vertical;line-height:1.7}
 .fscard label.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .fsprob{flex-basis:100%;font-size:.9rem}
 .fsprob ul{margin:8px 0 0;padding-left:20px}
+/* tai khoan */
+.userbox{display:flex;align-items:center;gap:8px;margin-left:12px}
+.who{font-weight:600;display:inline-flex;gap:8px;align-items:center}
+.top-in .brand{order:1}
+.top-in .tabs{order:2}
+.top-in .userbox{order:3}
+.auth .seg{margin:6px 0 18px}
+.authform{max-width:420px}
+.authform label{display:grid;gap:4px;font-size:.9rem;color:var(--ink-2)}
+@media (max-width:860px){
+  .top-in .userbox{order:2;margin-left:auto}
+  .top-in .tabs{order:3}
+}
+.auth details.forgot{max-width:420px;margin:16px 0 0;padding:0;border:0;background:none;font-size:.95rem}
+.forgot summary{cursor:pointer;color:var(--accent);font-weight:600;width:max-content}
+.forgot p{margin:8px 0 0;padding:10px 14px;border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--card))}
+/* ket qua, lich su, quan ly */
+.savebar{margin:-8px 0 22px;font-size:.92rem;color:var(--ink-2)}
+.savebar.ok{color:var(--ok);font-weight:600}
+.savebar.bad{color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 24px}
+.stat{border:1px solid var(--line);border-radius:4px;background:var(--card);padding:14px 16px}
+.stat b{display:block;font-family:var(--jp);font-size:1.9rem;line-height:1.1}
+.stat span{color:var(--ink-2);font-size:.88rem}
+.hlist{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.hrow{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line)}
+.htitle{font-weight:600}
+.hsub{font-size:.88rem;margin-top:2px}
+.hscore{text-align:right;min-width:80px}
+.hscore b{display:block;font-family:var(--jp);font-size:1.4rem}
+.hscore span{color:var(--ink-2);font-size:.88rem}
+.tempbox{border:2px solid var(--flag);border-radius:6px;background:color-mix(in srgb,var(--flag) 10%,var(--card));padding:14px 16px;margin:0 0 20px}
+.tempbox code{font-size:1.25rem;font-weight:700;letter-spacing:.06em;padding:2px 8px;border:1px dashed var(--ink-2);border-radius:4px;background:var(--card)}
+.who.btn{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* logo */
+.logo-plate{display:inline-flex;align-items:center;border-radius:6px;line-height:0}
+.logo-img{height:34px;width:auto;display:block}
+.logo-btn{background:none;border:0;padding:0;margin:0;cursor:pointer;display:inline-flex;border-radius:6px}
+.brand-sep{width:1px;height:26px;background:var(--line);margin:0 2px}
+.auth-logo{margin:0 0 20px}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .logo-plate{background:#fff;padding:3px 8px}
+}
+:root[data-theme="dark"] .logo-plate{background:#fff;padding:3px 8px}
+@media (max-width:860px){
+  .brand-jp,.brand-sep{display:none}
+  .logo-img{height:30px}
+}
 /* dialog + toast */
 .scrim{position:fixed;inset:0;background:rgba(10,14,22,.55);display:grid;place-items:center;z-index:50;padding:20px}
 .dlg{background:var(--card);border:1px solid var(--ink);border-radius:6px;padding:24px;max-width:420px;width:100%}
@@ -268,12 +316,10 @@ textarea.fld{resize:vertical;line-height:1.7}
 'use strict';
 
 /* ===== CÀI ĐẶT ===== */
-var ADMIN_KEY = '123123123';   // key nhập vào ở khu quản lý (địa chỉ ...#quan-ly) mới được tạo danh sách đề
+var ADMIN_CONTACT = 'Anh Hào';   // người được nhắn tin khi quên mật khẩu
 /* ================== */
 
 /* ---------- helpers ---------- */
-var KEY = 'jlpt-bank-v1';
-var storageOk = true;
 function $(s, r){ return (r || document).querySelector(s); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function rich(s){ return esc(s).replace(/__(.+?)__/g, '<u>$1</u>'); }
@@ -284,27 +330,8 @@ function fmt(sec){ sec = Math.max(0, Math.round(sec)); var h = Math.floor(sec / 
 var toastTimer;
 function toast(msg){ var t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove('show'); }, Math.max(2600, String(msg).length * 55)); }
 
-/* ---------- storage ---------- */
-var db = { exams: [], questions: [], seeded: false };
-function save(){
-  try { localStorage.setItem(KEY, JSON.stringify(db)); storageOk = true; }
-  catch (e) { storageOk = false; }
-}
-function load(){
-  var raw = null;
-  try { raw = localStorage.getItem(KEY); } catch (e) { storageOk = false; }
-  if (raw){
-    try {
-      var d = JSON.parse(raw);
-      if (d && Array.isArray(d.exams) && Array.isArray(d.questions)){
-        var drop = {}; d.exams.forEach(function(e){ if (e.sample) drop[e.id] = true; });
-        d.exams = d.exams.filter(function(e){ return !drop[e.id]; });
-        d.questions = d.questions.filter(function(q){ return !drop[q.examId]; });
-        db = d;
-      }
-    } catch (e) {}
-  }
-}
+/* ---------- dữ liệu đề (nạp từ máy chủ sau khi đăng nhập) ---------- */
+var db = { exams: [], questions: [] };
 
 /* ---------- import / export ---------- */
 function normalize(data, fallbackName){
@@ -383,8 +410,12 @@ function groupExams(){
 
 /* ---------- app state ---------- */
 var S = {
-  view: 'bank', expanded: {}, importErr: null,
-  bankLv: 'all', loading: true, src: null, problems: [],
+  view: 'bank', expanded: {},
+  bankLv: 'all', loading: false, problems: [], loadErr: '',
+  user: null, booting: true, authTab: 'login', authBusy: false, authErr: '', authName: '',
+  hist: { loading: false, err: '', stats: null, items: null },
+  acct: { msg: '', err: '', busy: false },
+  adm: { tab: 'exams', loading: false, busy: false, err: '', exams: null, users: null, results: null, jsonIn: '', nameIn: '', errs: null, editing: null, editBuf: null, tempPw: null },
   build: { level: '', selExams: {}, selSections: null, secCount: {}, shuffleQ: false, minutes: 0 },
   ex: null, timer: null
 };
@@ -426,15 +457,22 @@ function ask(o){
 }
 
 /* ---------- header ---------- */
+function brandHTML(){
+  var logo = '<span class="logo-plate"><img class="logo-img" src="/logo.png" width="105" height="34" alt="ACT Brain Vietnam"></span>';
+  var home = (S.user && S.view !== 'exam') ? '<button type="button" class="logo-btn" data-act="go" data-view="bank" title="Về Ngân hàng đề">' + logo + '</button>' : logo;
+  return '<div class="brand">' + home + '<span class="brand-sep" aria-hidden="true"></span><span class="brand-jp" lang="ja">模試</span><span>Luyện đề JLPT</span></div>';
+}
 function renderHeader(){
-  var h = '<div class="top-in"><div class="brand"><span class="brand-jp" lang="ja">模試</span><span>Luyện đề JLPT</span></div>';
-  if (S.view === 'exam'){
+  var h = '<div class="top-in">' + brandHTML();
+  if (S.user && S.view === 'exam'){
     h += '<div class="top-tools"><span class="timer" id="timer"></span><button type="button" class="btn quiet" data-act="exit">Thoát</button><button type="button" class="btn primary" data-act="submit">Nộp bài</button></div>';
-  } else {
-    var tabs = [['bank','Ngân hàng đề'],['build','Tạo bài thi'],['admin','Quản lý']];
+  } else if (S.user){
+    var tabs = [['bank','Ngân hàng đề'],['build','Tạo bài thi'],['history','Lịch sử']];
+    if (S.user.isAdmin) tabs.push(['admin','Quản lý']);
     h += '<nav class="tabs" aria-label="Chính">' + tabs.map(function(t){
       return '<button type="button" class="tab" data-act="go" data-view="' + t[0] + '"' + (S.view === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>';
-    }).join('') + '</nav>';
+    }).join('') + '</nav>' +
+      '<div class="userbox"><button type="button" class="btn quiet who" data-act="go" data-view="account" title="Tài khoản của bạn">' + esc(S.user.username) + (S.user.isAdmin ? ' <span class="badge ai">Admin</span>' : '') + '</button><button type="button" class="btn quiet" data-act="logout">Đăng xuất</button></div>';
   }
   $('#top').innerHTML = h + '</div>';
 }
@@ -467,7 +505,7 @@ function examRowHTML(ex){
 function bankHTML(){
   var h = '<h1 class="page-title">Ngân hàng đề</h1><p class="lede">Đề được xếp theo cấp (N5 đến N1), rồi theo năm, rồi theo tháng. Chọn một đề để thi ngay, hoặc sang “Tạo bài thi” để trộn nhiều đề và chọn số câu từng phần.</p>';
   if (S.loading && !db.exams.length) return h + '<p class="muted">Đang tải danh sách đề…</p>';
-  if (!db.exams.length) return h + '<div class="empty"><p>Chưa tải được danh sách đề. Hãy kiểm tra mạng rồi tải lại trang.</p></div>';
+  if (!db.exams.length) return h + '<div class="empty"><p>' + (S.loadErr ? 'Chưa tải được danh sách đề: ' + esc(S.loadErr) : 'Hiện chưa có đề nào trong ngân hàng.') + '</p></div>';
   var groups = groupExams();
   if (S.bankLv !== 'all' && !groups.some(function(g){ return g.k === S.bankLv; })) S.bankLv = 'all';
   h += '<div class="chips" role="group" aria-label="Lọc theo cấp"><button type="button" class="chip" data-act="bankLv" data-lv="all" aria-pressed="' + (S.bankLv === 'all') + '">Tất cả<span class="n">' + db.exams.length + '</span></button>' +
@@ -549,7 +587,7 @@ function pickQuestions(){
 }
 function buildHTML(){
   if (!db.exams.length){
-    return '<h1 class="page-title">Tạo bài thi</h1><div class="empty"><p>Chưa có đề nào để thi. Hãy kiểm tra mạng rồi tải lại trang.</p></div>';
+    return '<h1 class="page-title">Tạo bài thi</h1><div class="empty"><p>' + (S.loadErr ? 'Chưa tải được danh sách đề: ' + esc(S.loadErr) : 'Hiện chưa có đề nào để thi.') + '</p></div>';
   }
   ensureBuildSel();
   var b = S.build, secs = availSections(), groups = groupExams();
@@ -669,9 +707,10 @@ function submit(){
   ask({ title: 'Nộp bài?', body: left ? 'Còn ' + left + ' câu chưa chọn đáp án. Câu bỏ trống sẽ tính là sai.' : 'Bạn đã trả lời hết các câu.', ok: 'Nộp bài' }).then(function(v){ if (v) finish(false); });
 }
 function finish(auto){
-  stopTimer(); var ex = S.ex; ex.end = Date.now(); ex.filter = 'all';
+  stopTimer(); var ex = S.ex; ex.end = Date.now(); ex.filter = 'all'; ex.clientId = newId(); ex.auto = !!auto;
   S.view = 'result'; render(); window.scrollTo(0, 0);
   if (auto) toast('Hết giờ, bài đã được nộp tự động.');
+  saveAttempt(ex);
 }
 
 /* ---------- result ---------- */
@@ -693,13 +732,14 @@ function resultHTML(){
   var ex = S.ex, g = grade(ex), n = ex.items.length, pct = Math.round(g.right / n * 100), used = Math.round((ex.end - ex.start) / 1000);
   var h = '<h1 class="page-title">Kết quả</h1><div class="score"><div><span class="big">' + g.right + '</span><span class="of"> / ' + n + '</span></div>' +
     '<div class="facts"><span><strong>' + pct + '%</strong> câu đúng</span><span>Đúng ' + g.right + ', sai ' + g.wrong + ', bỏ trống ' + g.blank + '</span><span>Thời gian làm bài: ' + fmt(used) + '</span></div></div>';
+  h += saveLineHTML(ex);
   h += '<section class="block"><h2>Theo từng phần</h2>';
   g.secs.forEach(function(s){
     h += '<div class="secrow"><span>Phần ' + esc(s.section) + (s.title ? ' <span class="muted" lang="ja">' + esc(s.title) + '</span>' : '') + '</span><div class="track"><div class="fill" style="width:' + Math.round(s.r / s.n * 100) + '%"></div></div><span>' + s.r + '/' + s.n + '</span></div>';
   });
   h += '</section><div class="actions"><button type="button" class="btn primary" data-act="retryAll">Làm lại bài này</button>' +
     ((g.wrong + g.blank) ? '<button type="button" class="btn" data-act="retryWrong">Chỉ làm lại câu sai và bỏ trống</button>' : '') +
-    '<button type="button" class="btn quiet" data-act="go" data-view="build">Tạo bài thi khác</button></div>';
+    '<button type="button" class="btn quiet" data-act="go" data-view="build">Tạo bài thi khác</button><button type="button" class="btn quiet" data-act="go" data-view="history">Xem lịch sử</button></div>';
   h += '<div class="review-bar"><h2 style="font-size:1.1rem">Xem lại đáp án</h2><div class="seg" role="group" aria-label="Lọc câu"><button type="button" data-act="filter" data-f="all" aria-pressed="' + (ex.filter === 'all') + '">Tất cả</button><button type="button" data-act="filter" data-f="bad" aria-pressed="' + (ex.filter === 'bad') + '">Câu sai và bỏ trống</button></div></div>';
   var shown = 0;
   ex.items.forEach(function(it, i){
@@ -724,15 +764,6 @@ function resultHTML(){
 /* ---------- đọc tệp json ---------- */
 function stripFence(t){ return String(t).replace(/^\uFEFF/, '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, ''); }
 function baseName(p){ return String(p).split('/').pop().replace(/\.json$/i, ''); }
-function fixLevels(){
-  var c = false;
-  db.exams.forEach(function(e){
-    var cur = normLevel(e.level);
-    if (!cur){ var d = normLevel(e.name); if (d){ e.level = d; c = true; } }
-    else if (e.level !== cur){ e.level = cur; c = true; }
-  });
-  if (c) save();
-}
 function loadEntries(entries, extra){
   var exams = [], qs = [], problems = (extra || []).slice(), used = {};
   entries.slice().sort(function(a, b){ return a.path.localeCompare(b.path); }).forEach(function(en){
@@ -750,271 +781,339 @@ function loadEntries(entries, extra){
       e.questions.forEach(function(q){ q.examId = id; qs.push(q); });
     });
   });
-  S.entries = entries; db.exams = exams; db.questions = qs; db.seeded = true;
+  db.exams = exams; db.questions = qs;
   S.problems = problems; S.build.selExams = {}; S.build.selSections = null; S.build.secCount = {}; S.expanded = {};
-  save();
 }
 
-/* ---------- tự nạp thư mục json ---------- */
-async function fetchText(url){
-  var r = await fetch(url, { cache: 'no-store' });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r.text();
-}
-async function listByIndexPage(dirUrl, depth){
-  var html = await fetchText(dirUrl), dirPath = new URL(dirUrl).pathname, out = [];
-  var doc = new DOMParser().parseFromString(html, 'text/html');
-  var links = Array.prototype.slice.call(doc.querySelectorAll('a[href]'));
-  for (var i = 0; i < links.length; i++){
-    var href = links[i].getAttribute('href');
-    if (!href || href.charAt(0) === '#' || href.charAt(0) === '?') continue;
-    var u; try { u = new URL(href, dirUrl); } catch (e) { continue; }
-    if (u.origin !== new URL(dirUrl).origin || u.pathname.indexOf(dirPath) !== 0 || u.pathname === dirPath) continue;
-    if (/\.json$/i.test(u.pathname)) out.push(u.href);
-    else if (/\/$/.test(u.pathname) && depth < 3) out = out.concat(await listByIndexPage(u.href, depth + 1));
-  }
-  return out;
-}
-async function listByGithub(){
-  var h = location.hostname;
-  if (!/\.github\.io$/i.test(h)) return null;
-  var owner = h.split('.')[0], first = location.pathname.split('/').filter(Boolean)[0];
-  var repo = first && !/\.html?$/i.test(first) ? first : owner + '.github.io';
-  async function walk(p, depth){
-    var r = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + p);
-    if (!r.ok) throw new Error('GitHub ' + r.status);
-    var items = await r.json(), out = [];
-    for (var i = 0; i < items.length; i++){
-      if (items[i].type === 'file' && /\.json$/i.test(items[i].name)) out.push(new URL(items[i].path, location.href).href);
-      else if (items[i].type === 'dir' && depth < 3) out = out.concat(await walk(items[i].path, depth + 1));
-    }
-    return out;
-  }
-  return { urls: await walk('json', 0), repo: owner + '/' + repo };
-}
-async function listByManifest(){
-  var d = JSON.parse(await fetchText(new URL('json/index.json', location.href).href));
-  var names = Array.isArray(d) ? d : (d && d.files) || [];
-  return names.map(function(n){ return new URL('json/' + n, location.href).href; });
-}
-function loadBundle(){
-  return new Promise(function(res){
-    if (Array.isArray(window.JLPT_FILES)){ res(window.JLPT_FILES); return; }
-    var sc = document.createElement('script');
-    sc.src = 'json/_danh-sach.js';
-    sc.onload = function(){ res(Array.isArray(window.JLPT_FILES) ? window.JLPT_FILES : null); };
-    sc.onerror = function(){ res(null); };
-    setTimeout(function(){ res(null); }, 4000);
-    document.head.appendChild(sc);
-  });
-}
-async function loadByHttp(){
-  var base = new URL('json/', location.href), urls = null, source = '', detail = '';
-  if (typeof fetch !== 'undefined'){
-    try { urls = await listByIndexPage(base.href, 0); if (urls.length) source = 'listing'; } catch (e) { urls = null; }
-  }
-  if (!urls || !urls.length){
-    var b = await loadBundle();
-    if (b) return { entries: b, problems: [], source: 'bundle' };
-  }
-  if (typeof fetch === 'undefined') return null;
-  if (!urls || !urls.length){
-    try { var g = await listByGithub(); if (g && g.urls.length){ urls = g.urls; source = 'github'; detail = g.repo; } } catch (e) { urls = null; }
-  }
-  if (!urls || !urls.length){
-    try { urls = await listByManifest(); if (urls.length) source = 'manifest'; } catch (e) { urls = null; }
-  }
-  if (!urls || !urls.length) return null;
-  var problems = [], entries = [];
-  await Promise.all(urls.map(async function(u){
-    var rel = decodeURIComponent(new URL(u).pathname.slice(base.pathname.length));
-    try { entries.push({ path: rel, text: await fetchText(u), mtime: Date.now() }); }
-    catch (e) { problems.push(rel + ': không tải được (' + ((e && e.message) || e) + ')'); }
-  }));
-  return { entries: entries, problems: problems, source: source, detail: detail };
-}
-async function autoLoad(){
-  var res = null;
-  var work = /^https?:$/.test(location.protocol) ? loadByHttp() : loadBundle().then(function(b){ return b ? { entries: b, problems: [], source: 'bundle' } : null; });
-  try { res = await Promise.race([work, new Promise(function(r){ setTimeout(function(){ r(null); }, 20000); })]); }
-  catch (e) { res = null; }
-  if (res){
-    loadEntries(res.entries, res.problems);
-    S.src = { source: res.source, detail: res.detail || '' };
-    S.loading = false; render(); return true;
-  }
-  S.loading = false; render(); return false;
-}
-/* ---------- khu quản lý: tạo json/_danh-sach.js (cần key admin) ---------- */
-var A = { unlocked: false, keyIn: '', local: null, err: null, dir: null, remembered: null, busy: false };
-function loadAdmin(){ try { A.unlocked = sessionStorage.getItem('jlpt-admin') === '1'; } catch (e) {} }
-function setUnlocked(v){
-  A.unlocked = v;
-  try { if (v) sessionStorage.setItem('jlpt-admin', '1'); else sessionStorage.removeItem('jlpt-admin'); } catch (e) {}
-}
-function checkEntries(entries){
-  var ok = [], problems = [];
-  entries.forEach(function(en){
-    if (en.path === 'index.json') return;
-    var data;
-    try { data = JSON.parse(stripFence(en.text)); } catch (e) { problems.push(en.path + ': JSON không đọc được (' + e.message + ')'); return; }
-    var r = normalize(data, baseName(en.path));
-    if (r.errors.length){ problems.push(en.path + ': ' + r.errors[0]); return; }
-    ok.push({ path: en.path, text: en.text, exams: r.exams.length, questions: r.exams.reduce(function(a, e){ return a + e.questions.length; }, 0) });
-  });
-  return { ok: ok, problems: problems };
-}
-function adminSource(){
-  return A.local ? { name: 'thư mục “' + A.local.name + '” bạn vừa chọn', entries: A.local.entries } : { name: 'các tệp mà trang này đang đọc', entries: S.entries || [] };
-}
-function canFS(){ return typeof window.showDirectoryPicker === 'function'; }
-function idbOpen(){
-  return new Promise(function(res, rej){
-    var r = indexedDB.open('jlpt-fs', 1);
-    r.onupgradeneeded = function(){ r.result.createObjectStore('kv'); };
-    r.onsuccess = function(){ res(r.result); };
-    r.onerror = function(){ rej(r.error); };
-  });
-}
-function idbGet(k){ return idbOpen().then(function(d){ return new Promise(function(res, rej){ var q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = function(){ res(q.result); }; q.onerror = function(){ rej(q.error); }; }); }); }
-function idbSet(k, v){ return idbOpen().then(function(d){ return new Promise(function(res, rej){ var tx = d.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = function(){ res(); }; tx.onerror = function(){ rej(tx.error); }; }); }); }
-async function scanDir(dir, prefix, out, depth){
-  for await (var entry of dir.values()){
-    if (entry.kind === 'directory'){
-      if (depth < 3 && entry.name.charAt(0) !== '.' && entry.name !== 'node_modules') await scanDir(entry, prefix + entry.name + '/', out, depth + 1);
-    } else if (/\.json$/i.test(entry.name)){
-      var f = await entry.getFile();
-      out.push({ path: prefix + entry.name, text: await f.text() });
-    }
-  }
-}
-/* người dùng có thể chọn thư mục json, hoặc cả thư mục dự án (bên trong có thư mục json) */
-async function resolveJsonDir(h){
-  if (h.name.toLowerCase() === 'json') return h;
-  try { return await h.getDirectoryHandle('json'); } catch (e) { return h; }
-}
-async function adminUseDir(h){
-  A.busy = true; A.err = null; render();
+/* ---------- tài khoản và tải đề từ máy chủ ---------- */
+async function api(method, url, body, cacheMode){
+  var r;
   try {
-    var jd = await resolveJsonDir(h), entries = [];
-    await scanDir(jd, '', entries, 0);
-    A.dir = { handle: h, jsonDir: jd, name: h.name }; A.remembered = h;
-    A.local = { name: jd.name, entries: entries };
-  } catch (e) { A.err = ['Không đọc được thư mục: ' + ((e && e.message) || e)]; }
+    r = await fetch(url, { method: method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin', cache: cacheMode || 'no-store' });
+  } catch (e) { throw new Error('Không kết nối được tới máy chủ. Hãy kiểm tra mạng rồi thử lại.'); }
+  var data = null;
+  try { data = await r.json(); } catch (e) {}
+  if (!r.ok){ var er = new Error((data && data.error) || ('Lỗi ' + r.status)); er.status = r.status; er.data = data; throw er; }
+  return data;
+}
+async function loadExams(){
+  S.loading = true; S.loadErr = ''; render();
+  try {
+    var d = await api('GET', '/api/exams', null, 'default');
+    loadEntries(d.files.map(function(f){ return { path: f.path, text: f.text, mtime: 0 }; }), []);
+  } catch (e){
+    if (e.status === 401){ clearData(); S.user = null; S.authErr = 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.'; }
+    else S.loadErr = e.message;
+  }
+  S.loading = false; render();
+}
+async function boot(){
+  try { var d = await api('GET', '/api/auth?action=me'); S.user = d.user; }
+  catch (e){ S.user = null; S.authErr = e.message; }
+  S.booting = false; render();
+  if (S.user){ loadExams(); enterView(S.view); }
+}
+function sessionExpired(){
+  clearData(); S.user = null; S.authErr = 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.'; render();
+}
+function clearData(){
+  db.exams = []; db.questions = []; S.problems = [];
+  S.build.level = ''; S.build.selExams = {}; S.build.selSections = null; S.build.secCount = {};
+  S.expanded = {}; stopTimer(); S.ex = null; S.view = 'bank';
+  S.hist = { loading: false, err: '', stats: null, items: null };
+  S.adm = { tab: 'exams', loading: false, busy: false, err: '', exams: null, users: null, results: null, jsonIn: '', nameIn: '', errs: null, editing: null, editBuf: null, tempPw: null };
+}
+async function doAuth(form){
+  var mode = S.authTab, fd = new FormData(form);
+  var body = { username: String(fd.get('username') || '').trim(), password: String(fd.get('password') || '') };
+  S.authName = body.username;
+  if (mode === 'register'){
+    if (body.password !== String(fd.get('password2') || '')){ S.authErr = 'Hai ô mật khẩu chưa giống nhau.'; render(); return; }
+  }
+  S.authBusy = true; S.authErr = ''; render();
+  try {
+    var d = await api('POST', '/api/auth?action=' + mode, body);
+    S.user = d.user; S.authBusy = false; S.authName = ''; S.authErr = ''; render(); loadExams(); enterView(S.view); return;
+  } catch (e){ S.authErr = e.message; }
+  S.authBusy = false; render();
+}
+function authHTML(){
+  var reg = S.authTab === 'register';
+  var h = '<div class="auth"><div class="auth-logo"><span class="logo-plate"><img src="/logo.png" width="160" height="52" alt="ACT Brain Vietnam"></span></div><h1 class="page-title">' + (reg ? 'Tạo tài khoản' : 'Đăng nhập') + '</h1><p class="lede">' + (reg ? 'Tạo tài khoản để thi và lưu lại kết quả làm bài.' : 'Đăng nhập để thi và lưu lại kết quả làm bài.') + '</p>';
+  h += '<div class="seg" role="group" aria-label="Chọn"><button type="button" data-act="authTab" data-t="login" aria-pressed="' + (!reg) + '">Đăng nhập</button><button type="button" data-act="authTab" data-t="register" aria-pressed="' + reg + '">Tạo tài khoản</button></div>';
+  if (S.authErr) h += '<div class="err" role="alert" style="max-width:420px">' + esc(S.authErr) + '</div>';
+  h += '<form class="authform" data-form="auth" novalidate><fieldset' + (S.authBusy ? ' disabled' : '') + ' style="border:0;padding:0;margin:0;min-width:0;display:grid;gap:14px">' +
+    '<label>Tên đăng nhập<input class="fld" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="60" value="' + esc(S.authName) + '"></label>' +
+    '<label>Mật khẩu<input class="fld" type="password" name="password" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" maxlength="128"></label>';
+  if (reg) h += '<label>Nhập lại mật khẩu<input class="fld" type="password" name="password2" autocomplete="new-password" maxlength="128"></label>' +
+    '<p class="muted" style="margin:0;font-size:.86rem">Tên đăng nhập gồm 3 đến 30 ký tự: chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang. Mật khẩu từ 8 ký tự.</p>';
+  h += '<button type="submit" class="btn primary big">' + (S.authBusy ? 'Đang xử lý…' : (reg ? 'Tạo tài khoản' : 'Đăng nhập')) + '</button></fieldset></form>' + (reg ? '' : '<details class="forgot"><summary>Quên mật khẩu?</summary><p>Hãy nhắn tin cho admin <strong>' + esc(ADMIN_CONTACT) + '</strong> để được đặt lại mật khẩu.</p></details>') + '</div>';
+  return h;
+}
+
+/* ---------- tiện ích ---------- */
+function fmtDate(ts){
+  try { return new Date(ts).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+}
+function newId(){
+  try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+  return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+}
+function pct(a, b){ return b ? Math.round(a / b * 100) : 0; }
+function safeName(n){ return String(n).replace(/[\\\/:*?"<>|]+/g, '-').trim() || 'de'; }
+function lvOptions(sel){
+  return '<option value="">Chưa rõ</option>' + LEVELS.map(function(l){ return '<option value="' + l + '"' + (sel === l ? ' selected' : '') + '>' + l + '</option>'; }).join('');
+}
+function copyText(text, okMsg){
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function(){ toast(okMsg); }, function(){ toast('Không sao chép được, hãy bôi đen rồi sao chép.'); });
+  else toast('Không sao chép được, hãy bôi đen rồi sao chép.');
+}
+var EXAMPLE_JSON = [
+'{',
+'  "name": "N4 T7/2021",',
+'  "level": "N4",',
+'  "questions": [',
+'    {',
+'      "section": "A",',
+'      "sectionTitle": "文字・語彙",',
+'      "mondai": "問題1",',
+'      "instruction": "＿＿＿の言葉の読み方として…",',
+'      "text": "来週、友達と__映画__を見に行きます。",',
+'      "choices": ["えいか", "えいが", "えいがく", "えが"],',
+'      "answer": 2',
+'    },',
+'    {',
+'      "section": "C",',
+'      "sectionTitle": "読解",',
+'      "group": "c1",',
+'      "passage": "山田さんへ …",',
+'      "text": "食事の会について、正しいものはどれですか。",',
+'      "choices": ["…", "…", "…", "…"],',
+'      "answer": 1',
+'    }',
+'  ]',
+'}'
+].join('\n');
+
+/* ---------- lưu kết quả làm bài ---------- */
+function attemptPayload(ex){
+  var g = grade(ex), names = {}, first = null;
+  ex.items.forEach(function(it){ var e = examById(it.q.examId); if (e){ names[e.name] = 1; if (!first) first = e; } });
+  return {
+    clientId: ex.clientId, level: first ? levelKey(first) : '?', exams: Object.keys(names).slice(0, 20),
+    total: ex.items.length, correct: g.right, wrong: g.wrong, blank: g.blank,
+    sections: g.secs.map(function(s){ return { section: s.section, title: s.title || '', total: s.n, correct: s.r }; }),
+    durationSec: Math.round((ex.end - ex.start) / 1000), limitSec: ex.limitSec || 0, startedAt: new Date(ex.start).toISOString(), auto: !!ex.auto
+  };
+}
+async function saveAttempt(ex){
+  ex.save = { state: 'saving' };
+  if (S.ex === ex && S.view === 'result') render();
+  try { await api('POST', '/api/attempts', attemptPayload(ex)); ex.save = { state: 'saved' }; S.hist.items = null; }
+  catch (e){
+    if (e.status === 401){ sessionExpired(); return; }
+    ex.save = { state: 'error', msg: e.message };
+  }
+  if (S.ex === ex && S.view === 'result') render();
+}
+function saveLineHTML(ex){
+  var st = ex.save || { state: 'saving' };
+  if (st.state === 'saved') return '<p class="savebar ok">Đã lưu kết quả vào Lịch sử.</p>';
+  if (st.state === 'error') return '<p class="savebar bad">Chưa lưu được kết quả: ' + esc(st.msg) + ' <button type="button" class="btn" data-act="retrySave">Thử lưu lại</button></p>';
+  return '<p class="savebar">Đang lưu kết quả…</p>';
+}
+
+/* ---------- lịch sử ---------- */
+async function loadHistory(){
+  S.hist.loading = true; S.hist.err = ''; render();
+  try { var d = await api('GET', '/api/attempts'); S.hist.stats = d.stats; S.hist.items = d.items; }
+  catch (e){ if (e.status === 401){ sessionExpired(); return; } S.hist.err = e.message; }
+  S.hist.loading = false; render();
+}
+function attemptRowHTML(a, withUser){
+  var title = (a.level ? a.level + ': ' : '') + ((a.exams || []).join(', ') || 'Bài thi');
+  var secs = (a.sections || []).map(function(s){ return 'Phần ' + esc(s.section) + ' ' + s.correct + '/' + s.total; }).join(', ');
+  return '<li class="hrow"><div class="hmain"><div class="htitle">' + (withUser ? '<strong>' + esc(a.username) + '</strong> ' : '') + esc(title) + '</div>' +
+    '<div class="muted hsub">' + esc(fmtDate(a.finished_at)) + '. Làm trong ' + fmt(a.duration_sec) + (a.auto_submitted ? ' (hết giờ)' : '') + '. ' + secs + '.</div></div>' +
+    '<div class="hscore"><b>' + a.correct + '/' + a.total + '</b><span>' + pct(a.correct, a.total) + '%</span></div></li>';
+}
+function histHTML(){
+  var H = S.hist, h = '<h1 class="page-title">Lịch sử làm bài</h1>';
+  if (H.err) h += '<div class="err" role="alert">' + esc(H.err) + '</div>';
+  if (!H.items) return h + (H.loading ? '<p class="muted">Đang tải…</p>' : '');
+  var st = H.stats || { attempts: 0, questions: 0, correct: 0, days: 0 };
+  h += '<div class="stats">' + [['Số lần làm', st.attempts], ['Số câu đã làm', st.questions], ['Tỉ lệ đúng', pct(st.correct, st.questions) + '%'], ['Số ngày đã luyện', st.days]].map(function(x){
+    return '<div class="stat"><b>' + x[1] + '</b><span>' + x[0] + '</span></div>'; }).join('') + '</div>';
+  if (!H.items.length) return h + '<div class="empty"><p>Bạn chưa làm bài nào. Kết quả mỗi lần nộp bài sẽ được lưu ở đây.</p><button type="button" class="btn primary" data-act="go" data-view="build">Bắt đầu thi</button></div>';
+  return h + '<ul class="hlist">' + H.items.map(function(a){ return attemptRowHTML(a, false); }).join('') + '</ul>';
+}
+
+/* ---------- tài khoản ---------- */
+function accountHTML(){
+  var C = S.acct;
+  var h = '<h1 class="page-title">Tài khoản</h1><p class="lede">Tên đăng nhập: <strong>' + esc(S.user.username) + '</strong>' + (S.user.isAdmin ? ' <span class="badge ai">Admin</span>' : '') + '</p>';
+  h += '<section class="block"><h2>Đổi mật khẩu</h2>' + (C.err ? '<div class="err" role="alert" style="max-width:420px">' + esc(C.err) + '</div>' : '') + (C.msg ? '<p class="savebar ok">' + esc(C.msg) + '</p>' : '') +
+    '<form class="authform" data-form="pw" novalidate><fieldset' + (C.busy ? ' disabled' : '') + ' style="border:0;padding:0;margin:0;min-width:0;display:grid;gap:14px">' +
+    '<label>Mật khẩu hiện tại<input class="fld" type="password" name="current" autocomplete="current-password" maxlength="128"></label>' +
+    '<label>Mật khẩu mới<input class="fld" type="password" name="next" autocomplete="new-password" maxlength="128"></label>' +
+    '<label>Nhập lại mật khẩu mới<input class="fld" type="password" name="next2" autocomplete="new-password" maxlength="128"></label>' +
+    '<p class="muted" style="margin:0;font-size:.86rem">Mật khẩu mới từ 8 ký tự. Đổi xong, các máy khác đang đăng nhập sẽ bị đăng xuất.</p>' +
+    '<button type="submit" class="btn primary">' + (C.busy ? 'Đang đổi…' : 'Đổi mật khẩu') + '</button></fieldset></form></section>';
+  return h;
+}
+async function doChangePw(form){
+  var fd = new FormData(form), cur = String(fd.get('current') || ''), next = String(fd.get('next') || ''), next2 = String(fd.get('next2') || '');
+  if (next !== next2){ S.acct = { msg: '', err: 'Hai ô mật khẩu mới chưa giống nhau.', busy: false }; render(); return; }
+  S.acct = { msg: '', err: '', busy: true }; render();
+  try { await api('POST', '/api/auth?action=change_password', { current: cur, next: next }); S.acct = { msg: 'Đã đổi mật khẩu.', err: '', busy: false }; }
+  catch (e){ if (e.status === 401 && /đăng nhập/i.test(e.message)){ sessionExpired(); return; } S.acct = { msg: '', err: e.message, busy: false }; }
+  render();
+}
+
+/* ---------- khu quản lý (chỉ admin) ---------- */
+function enterView(v){
+  if (v === 'history') loadHistory();
+  else if (v === 'admin' && S.user && S.user.isAdmin) admLoad(S.adm.tab);
+  else if (v === 'account') S.acct = { msg: '', err: '', busy: false };
+}
+async function admLoad(tab){
+  var A = S.adm; A.loading = true; A.err = ''; render();
+  try {
+    if (tab === 'exams') A.exams = (await api('GET', '/api/admin?action=exams')).exams;
+    else if (tab === 'users') A.users = (await api('GET', '/api/admin?action=users')).users;
+    else A.results = await api('GET', '/api/admin?action=results');
+  } catch (e){ if (e.status === 401){ sessionExpired(); return; } A.err = e.message; }
+  A.loading = false; render();
+}
+async function admRun(fn){
+  var A = S.adm; A.busy = true; A.err = ''; render();
+  try { await fn(); } catch (e){ if (e.status === 401){ sessionExpired(); return; } A.err = e.message; }
   A.busy = false; render();
 }
-async function adminPickDir(){
-  var h;
-  try { h = await window.showDirectoryPicker({ id: 'jlpt-json', mode: 'readwrite' }); }
-  catch (e) { if (!e || e.name !== 'AbortError'){ A.err = ['Không mở được thư mục: ' + ((e && e.message) || e)]; render(); } return; }
-  try { await idbSet('dir', h); } catch (e) {}
-  await adminUseDir(h);
+function admPost(action, body){ return api('POST', '/api/admin?action=' + action, body); }
+async function admReloadExams(){
+  S.adm.exams = (await api('GET', '/api/admin?action=exams')).exams;
+  loadExams();
 }
-async function adminRestore(){
-  if (!canFS() || typeof indexedDB === 'undefined' || A.dir) return;
-  var h; try { h = await idbGet('dir'); } catch (e) { return; }
-  if (!h) return;
-  A.remembered = h;
-  var p = 'prompt'; try { p = await h.queryPermission({ mode: 'readwrite' }); } catch (e) {}
-  if (p === 'granted') await adminUseDir(h); else render();
-}
-async function adminGrant(){
-  var h = A.remembered, p = 'denied';
-  if (!h) return;
-  try { p = await h.requestPermission({ mode: 'readwrite' }); } catch (e) {}
-  if (p === 'granted') await adminUseDir(h); else toast('Bạn chưa cho phép truy cập thư mục.');
-}
-function readDirFallback(files){
-  var list = Array.prototype.filter.call(files || [], function(f){ return /\.json$/i.test(f.name); });
-  if (!list.length){ A.local = null; A.err = ['Không thấy tệp .json nào trong thư mục đã chọn.']; render(); return Promise.resolve(); }
-  var root = (list[0].webkitRelativePath || '').split('/')[0] || 'json';
-  return Promise.all(list.map(async function(f){
-    var rel = f.webkitRelativePath || f.name, parts = rel.split('/');
-    return { path: parts.length > 1 ? parts.slice(1).join('/') : rel, text: await f.text() };
-  })).then(function(entries){
-    var inJson = entries.filter(function(en){ return /^json\//.test(en.path); });
-    if (inJson.length){ entries = inJson.map(function(en){ return { path: en.path.replace(/^json\//, ''), text: en.text }; }); root = 'json'; }
-    A.local = { name: root, entries: entries }; A.err = null; render();
-  });
-}
-function buildListCode(){
-  var chk = checkEntries(adminSource().entries);
-  if (!chk.ok.length) return null;
-  var list = chk.ok.slice().sort(function(a, b){ return a.path.localeCompare(b.path); }).map(function(x){ return { path: x.path, text: x.text, mtime: 0 }; });
-  return { code: 'window.JLPT_FILES = ' + JSON.stringify(list).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') + ';\n', count: list.length };
-}
-async function adminSave(){
-  var b = buildListCode();
-  if (!b){ A.err = ['Chưa có đề hợp lệ nào để tạo danh sách. Hãy chọn thư mục json ở bước 1.']; render(); return; }
-  if (!A.dir) return;
-  A.busy = true; A.err = null; render();
+async function admSave(replace){
+  var A = S.adm, raw = A.jsonIn.trim(), data;
+  A.errs = null;
+  if (!raw){ A.errs = ['Ô JSON đang trống.']; render(); return; }
+  try { data = JSON.parse(stripFence(raw)); } catch (e){ A.errs = ['JSON không đọc được: ' + e.message]; render(); return; }
+  var pre = normalize(data, A.nameIn.trim());
+  if (pre.errors.length){ A.errs = pre.errors.slice(0, 12); render(); return; }
+  A.busy = true; render();
   try {
-    var fh = await A.dir.jsonDir.getFileHandle('_danh-sach.js', { create: true }), w = await fh.createWritable();
-    await w.write(b.code); await w.close();
-    toast('Đã lưu json/_danh-sach.js với ' + b.count + ' tệp vào thư mục “' + A.dir.jsonDir.name + '”. Giờ chỉ cần commit và push.');
-  } catch (e) { A.err = ['Không ghi được vào thư mục: ' + ((e && e.message) || e) + '. Thử bấm “Chọn thư mục json” lại và cho phép ghi.']; }
+    var d = await admPost('exam_save', { json: data, name: A.nameIn.trim(), replace: !!replace });
+    toast('Đã lưu: ' + d.saved.map(function(x){ return x.name + ' (' + x.questions + ' câu)'; }).join(', ') + '. Người học thấy ngay.');
+    A.jsonIn = ''; A.nameIn = '';
+    await admReloadExams();
+  } catch (e){
+    if (e.status === 401){ sessionExpired(); return; }
+    if (e.status === 409 && e.data && e.data.code === 'exists'){
+      A.busy = false; render();
+      var yes = await ask({ title: 'Ghi đè đề?', body: 'Đã có đề “' + e.data.names.join('”, “') + '”. Ghi đè sẽ thay nội dung cũ bằng JSON bạn vừa dán. Kết quả làm bài đã lưu của người học vẫn được giữ.', ok: 'Ghi đè' });
+      if (yes) return admSave(true);
+      return;
+    }
+    A.errs = (e.data && e.data.errors) || [e.message];
+  }
   A.busy = false; render();
 }
-function adminDownload(){
-  var b = buildListCode();
-  if (!b){ A.err = ['Chưa có đề hợp lệ nào để tạo danh sách. Hãy chọn thư mục json ở bước 1.']; render(); return; }
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([b.code], { type: 'text/javascript' }));
-  a.download = '_danh-sach.js';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
-  A.err = null; render();
-  toast('Đã tải _danh-sach.js với ' + b.count + ' tệp. Chép vào thư mục json (ghi đè tệp cũ) rồi commit và push.');
+async function admDownload(id){
+  try {
+    var d = await api('GET', '/api/admin?action=exam_get&id=' + encodeURIComponent(id));
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(d.data, null, 2)], { type: 'application/json' }));
+    a.download = safeName(d.data.name) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
+  } catch (e){ toast(e.message); }
+}
+function admExamRow(e){
+  var A = S.adm;
+  if (A.editing === e.id){
+    return '<li class="exam-row"><div class="exam-head"><div class="edit-grid"><label>Tên đề<input class="fld" data-ed="name" value="' + esc(A.editBuf.name) + '"></label><label>Cấp<select class="fld" data-ed="level">' + lvOptions(A.editBuf.level) + '</select></label></div>' +
+      '<div class="exam-actions"><button type="button" class="btn primary" data-act="admSaveEdit">Lưu</button><button type="button" class="btn" data-act="admCancelEdit">Hủy</button></div></div><p class="exam-note">Đặt tên dạng “N4 T7/2021” để đề tự xếp đúng cấp, năm, tháng.</p></li>';
+  }
+  return '<li class="exam-row"><div class="exam-head"><div><div class="exam-title"><h3>' + esc(e.name) + '</h3>' + (normLevel(e.level) ? '<span class="lvl">' + esc(e.level) + '</span>' : '') + '</div>' +
+    '<p class="exam-meta">' + e.questions + ' câu. ' + (e.sections || []).map(function(s){ return 'Phần ' + esc(s.section) + ': ' + s.n; }).join(', ') + '. Cập nhật ' + esc(fmtDate(e.updated_at)) + '.</p></div>' +
+    '<div class="exam-actions"><button type="button" class="btn" data-act="admEdit" data-id="' + e.id + '">Sửa tên, cấp</button><button type="button" class="btn" data-act="admDownload" data-id="' + e.id + '">Tải JSON</button><button type="button" class="btn danger" data-act="admDelete" data-id="' + e.id + '">Xóa</button></div></div></li>';
+}
+function admExamsHTML(){
+  var A = S.adm;
+  var h = '<section class="block"><h2>Thêm đề từ JSON</h2><p class="muted" style="margin-bottom:10px">Dán nội dung JSON của đề hoặc chọn tệp .json. Đề được lưu thẳng vào cơ sở dữ liệu và người học thấy ngay, không cần commit.</p>' +
+    '<div class="row"><label for="admName">Tên đề</label><input id="admName" class="text-in" type="text" placeholder="Chỉ cần nếu JSON chưa có tên, ví dụ N4 T7/2021" value="' + esc(A.nameIn) + '" autocomplete="off" style="min-width:300px"></div>' +
+    '<textarea id="admJson" class="code" spellcheck="false" aria-label="JSON của đề" placeholder="Dán JSON vào đây">' + esc(A.jsonIn) + '</textarea>' +
+    '<div class="row" style="margin-top:12px"><input type="file" accept=".json,application/json" data-chg="admFile"><button type="button" class="btn primary" data-act="admSave"' + (A.busy ? ' disabled' : '') + '>' + (A.busy ? 'Đang lưu…' : 'Lưu đề') + '</button></div>';
+  if (A.errs) h += '<div class="err" role="alert"><strong>Chưa lưu được.</strong><ul>' + A.errs.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+  h += '<details style="margin-top:14px"><summary>Định dạng JSON</summary><pre class="code" lang="ja">' + esc(EXAMPLE_JSON) + '</pre>' +
+    '<p style="margin-top:10px"><strong>Bắt buộc:</strong> section, text, choices (2 đến 6 đáp án), answer (số thứ tự đáp án đúng, đếm từ 1).</p>' +
+    '<p><strong>Không bắt buộc:</strong> sectionTitle, mondai, instruction, passage, group, explanation. Các câu cùng một bài đọc dùng chung group và passage. Từ gạch chân viết trong hai dấu gạch dưới, ví dụ __映画__. Một lần có thể dán nhiều đề bằng {"exams": [ … ]}.</p></details></section>';
+  h += '<section class="block"><h2>Đề đang có</h2>';
+  var by = {};
+  (A.exams || []).forEach(function(e){ var k = normLevel(e.level) || '?'; (by[k] = by[k] || []).push(e); });
+  if (!(A.exams || []).length) h += '<div class="empty">Chưa có đề nào.</div>';
+  LEVELS.concat(['?']).forEach(function(k){
+    if (!by[k]) return;
+    h += '<h3 class="yr">' + esc(lvLabel(k)) + '<span class="muted">' + by[k].length + ' đề</span></h3><ul class="exam-list">' + by[k].map(admExamRow).join('') + '</ul>';
+  });
+  return h + '</section>';
+}
+function admUsersHTML(){
+  var A = S.adm, h = '';
+  if (A.tempPw) h += '<div class="tempbox" role="status"><strong>Mật khẩu tạm của ' + esc(A.tempPw.username) + ':</strong> <code>' + esc(A.tempPw.password) + '</code> <button type="button" class="btn" data-act="admCopyPw">Sao chép</button> <button type="button" class="btn quiet" data-act="admClosePw">Đóng</button>' +
+    '<p class="muted" style="margin:8px 0 0">Gửi mật khẩu này cho học viên. Họ đăng nhập rồi đổi ở mục Tài khoản. Mật khẩu chỉ hiện một lần, đóng đi là không xem lại được.</p></div>';
+  h += '<ul class="exam-list">' + (A.users || []).map(function(u){
+    var me = u.id === S.user.id;
+    return '<li class="exam-row"><div class="exam-head"><div><div class="exam-title"><h3>' + esc(u.username) + '</h3>' + (u.is_admin ? '<span class="badge ai">Admin</span>' : '') + (u.is_disabled ? '<span class="badge warn">Đã khóa</span>' : '') + (me ? '<span class="muted">(bạn)</span>' : '') + '</div>' +
+      '<p class="exam-meta">Tạo ' + esc(fmtDate(u.created_at)) + '. Đăng nhập gần nhất: ' + (u.last_login_at ? esc(fmtDate(u.last_login_at)) : 'chưa lần nào') + '. ' + u.attempts + ' lần làm bài.</p></div>' +
+      (me ? '' : '<div class="exam-actions"><button type="button" class="btn" data-act="admReset" data-id="' + u.id + '">Đặt lại mật khẩu</button><button type="button" class="btn" data-act="admDisable" data-id="' + u.id + '">' + (u.is_disabled ? 'Mở khóa' : 'Khóa') + '</button><button type="button" class="btn" data-act="admAdmin" data-id="' + u.id + '">' + (u.is_admin ? 'Gỡ quyền admin' : 'Cấp quyền admin') + '</button></div>') + '</div></li>';
+  }).join('') + '</ul>';
+  return h;
+}
+function admResultsHTML(){
+  var R = S.adm.results; if (!R) return '';
+  var st = R.stats;
+  var h = '<div class="stats">' + [['Số lần làm', st.attempts], ['Số người đã làm', st.users], ['Số câu đã làm', st.questions], ['Tỉ lệ đúng', pct(st.correct, st.questions) + '%']].map(function(x){ return '<div class="stat"><b>' + x[1] + '</b><span>' + x[0] + '</span></div>'; }).join('') + '</div>';
+  if (!R.items.length) return h + '<div class="empty">Chưa có ai nộp bài.</div>';
+  return h + '<p class="muted" style="margin-bottom:10px">300 lần làm gần nhất.</p><ul class="hlist">' + R.items.map(function(a){ return attemptRowHTML(a, true); }).join('') + '</ul>';
 }
 function adminHTML(){
-  var h = '<h1 class="page-title">Khu quản lý</h1>';
-  if (!A.unlocked){
-    return h + '<p class="lede">Chỉ người đăng đề mới tạo được danh sách đề. Nhập key admin rồi bấm xác nhận.</p><section class="fscard"><div class="row" style="margin:0"><label for="adminKey">Key admin</label><input id="adminKey" class="text-in" type="password" autocomplete="off" value="' + esc(A.keyIn) + '"><button type="button" class="btn primary" data-act="adminLogin">Xác nhận</button></div></section>';
-  }
-  var fs = canFS(), src = adminSource(), chk = checkEntries(src.entries), stale = !A.local && S.src && S.src.source === 'bundle';
-  var exams = chk.ok.reduce(function(a, x){ return a + x.exams; }, 0), qs = chk.ok.reduce(function(a, x){ return a + x.questions; }, 0);
-  h += '<div class="row" style="justify-content:space-between"><p class="lede" style="margin:0">Tạo tệp <strong>json/_danh-sach.js</strong> từ các tệp đề trong thư mục json' + (fs ? ' và lưu thẳng vào thư mục đó. Sau đó chỉ cần commit và push.' : '. Tải về rồi chép vào thư mục json, commit và push.') + '</p><button type="button" class="btn quiet" data-act="adminLogout">Thoát</button></div>';
-  if (A.err) h += '<div class="err" role="alert"><ul>' + A.err.map(function(e){ return '<li>' + esc(e) + '</li>'; }).join('') + '</ul></div>';
+  var A = S.adm;
+  var h = '<h1 class="page-title">Quản lý</h1><div class="seg" role="group" aria-label="Mục quản lý" style="margin-bottom:20px">' +
+    [['exams', 'Đề thi'], ['users', 'Người dùng'], ['results', 'Kết quả']].map(function(x){ return '<button type="button" data-act="admTab" data-t="' + x[0] + '" aria-pressed="' + (A.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+  if (A.err) h += '<div class="err" role="alert">' + esc(A.err) + '</div>';
+  if (A[A.tab] === null && A.loading) return h + '<p class="muted">Đang tải…</p>';
   h += '<fieldset' + (A.busy ? ' disabled' : '') + ' style="border:0;padding:0;margin:0;min-width:0">';
-  h += '<section class="block"><h2>Bước 1: chọn thư mục json' + (fs ? '' : ' (nên làm)') + '</h2>';
-  if (fs){
-    h += '<p class="muted" style="margin-bottom:10px">Chọn thư mục <strong>json</strong> trong dự án (hoặc cả thư mục dự án). Chrome không cho chọn thẳng Desktop, Documents hay Downloads. Web nhớ thư mục này cho các lần sau.</p><div class="row">';
-    if (A.dir) h += '<span class="badge pdf">Đã chọn: ' + esc(A.dir.name) + '</span>';
-    else if (A.remembered) h += '<button type="button" class="btn primary" data-act="adminGrant">Dùng lại thư mục “' + esc(A.remembered.name) + '”</button>';
-    h += '<button type="button" class="btn' + (A.dir || A.remembered ? '' : ' primary') + '" data-act="adminPick">' + (A.dir || A.remembered ? 'Chọn thư mục khác' : 'Chọn thư mục json') + '</button></div></section>';
-  } else {
-    h += '<p class="muted" style="margin-bottom:10px">Trình duyệt này không lưu thẳng vào thư mục được (cần Chrome hoặc Edge trên máy tính), nên web sẽ tải tệp về cho bạn tự chép. Chọn thư mục <strong>json</strong> trên máy bạn để đọc đúng các tệp mới nhất; bỏ qua thì web dùng các tệp mà trang đang đọc.</p><input type="file" webkitdirectory multiple data-chg="adminDir" aria-label="Chọn thư mục json"></section>';
-  }
-  h += '<section class="block"><h2>Bước 2: tạo danh sách</h2><p class="muted" style="margin-bottom:10px">Nguồn: ' + esc(src.name) + '. ' + chk.ok.length + ' tệp hợp lệ (' + exams + ' đề, ' + qs + ' câu).</p>';
-  if (stale) h += '<p class="err" style="margin:0 0 12px">Trang đang đọc từ chính tệp _danh-sach.js cũ, nên tạo lại từ đây sẽ không có đề mới. Hãy chọn thư mục json ở bước 1.</p>';
-  if (chk.problems.length) h += '<details class="fsprob" open style="margin-bottom:12px"><summary>' + chk.problems.length + ' tệp không đọc được, sẽ không có trong danh sách</summary><ul>' + chk.problems.map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></details>';
-  var okAny = chk.ok.length && !stale;
-  if (fs) h += '<div class="row"><button type="button" class="btn primary big" data-act="adminSave"' + (A.dir && okAny ? '' : ' disabled') + '>Tạo và lưu vào thư mục</button>' + (A.dir ? '' : '<span class="muted">Hãy chọn thư mục ở bước 1 trước.</span>') + '<button type="button" class="btn quiet" data-act="adminGenerate"' + (okAny ? '' : ' disabled') + '>Chỉ tải về</button></div>';
-  else h += '<button type="button" class="btn primary big" data-act="adminGenerate"' + (okAny ? '' : ' disabled') + '>Tạo và tải _danh-sach.js</button>';
-  return h + '</section></fieldset>';
+  h += A.tab === 'exams' ? admExamsHTML() : A.tab === 'users' ? admUsersHTML() : admResultsHTML();
+  return h + '</fieldset>';
 }
 
 /* ---------- render ---------- */
 function render(){
   renderHeader();
   var app = $('#app');
+  if (S.booting){ app.innerHTML = '<p class="muted">Đang tải…</p>'; return; }
+  if (!S.user){ app.innerHTML = authHTML(); return; }
   if (S.view === 'bank') app.innerHTML = bankHTML();
   else if (S.view === 'build'){ app.innerHTML = buildHTML(); updateSummary(); }
-  else if (S.view === 'admin') app.innerHTML = adminHTML();
   else if (S.view === 'exam'){ app.innerHTML = examShell(); renderQuestion(); renderSheet(); renderTimer(); }
   else if (S.view === 'result') app.innerHTML = resultHTML();
+  else if (S.view === 'history') app.innerHTML = histHTML();
+  else if (S.view === 'account') app.innerHTML = accountHTML();
+  else if (S.view === 'admin') app.innerHTML = S.user.isAdmin ? adminHTML() : '<div class="empty"><p>Bạn không có quyền vào khu này.</p></div>';
 }
-function viewFromHash(h){ return h === 'quan-ly' ? 'admin' : ((h === 'bank' || h === 'build') ? h : null); }
+function viewFromHash(h){ return ['bank', 'build', 'history', 'account', 'admin'].indexOf(h) >= 0 ? h : null; }
 function goView(v){
   S.view = v;
-  var hh = v === 'admin' ? 'quan-ly' : v;
-  if (location.hash !== '#' + hh) location.hash = hh;
-  render(); window.scrollTo(0, 0);
+  if (location.hash !== '#' + v) location.hash = v;
+  render(); window.scrollTo(0, 0); enterView(v);
 }
 
 /* ---------- events ---------- */
 var actions = {
-  go: function(el){ goView(el.dataset.view); if (el.dataset.view === 'admin' && A.unlocked) adminRestore(); },
+  go: function(el){ goView(el.dataset.view); },
   toggleQ: function(el){ S.expanded[el.dataset.id] = !S.expanded[el.dataset.id]; render(); },
   testExam: function(el){ var ex = examById(el.dataset.id); if (!ex) return; S.build.level = levelKey(ex); S.build.selExams = {}; S.build.selExams[ex.id] = true; S.build.selSections = null; S.build.secCount = {}; goView('build'); },
   secAll: function(el){
@@ -1055,22 +1154,68 @@ var actions = {
     if (all) b.selExams[g.exams[0].id] = true; else g.exams.forEach(function(e){ b.selExams[e.id] = true; });
     b.selSections = null; b.secCount = {}; render();
   },
-  adminLogin: function(){
-    if (String(A.keyIn).trim() !== ADMIN_KEY){ toast('Sai key admin.'); return; }
-    A.keyIn = ''; setUnlocked(true); render(); toast('Đã xác nhận.'); adminRestore();
+  retrySave: function(){ if (S.ex) saveAttempt(S.ex); },
+  admTab: function(el){ S.adm.tab = el.dataset.t; S.adm.err = ''; admLoad(S.adm.tab); },
+  admSave: function(){ admSave(false); },
+  admEdit: function(el){
+    var e = (S.adm.exams || []).filter(function(x){ return x.id === el.dataset.id; })[0]; if (!e) return;
+    S.adm.editing = e.id; S.adm.editBuf = { name: e.name, level: normLevel(e.level) }; S.adm.err = ''; render();
   },
-  adminLogout: function(){ setUnlocked(false); A.local = null; A.dir = null; A.err = null; goView('bank'); },
-  adminPick: function(){ adminPickDir(); },
-  adminGrant: function(){ adminGrant(); },
-  adminSave: function(){ adminSave(); },
-  adminGenerate: function(){ adminDownload(); }
+  admCancelEdit: function(){ S.adm.editing = null; render(); },
+  admSaveEdit: function(){
+    var A = S.adm;
+    admRun(async function(){ await admPost('exam_update', { id: A.editing, name: A.editBuf.name, level: A.editBuf.level }); A.editing = null; toast('Đã cập nhật.'); await admReloadExams(); });
+  },
+  admDelete: function(el){
+    var e = (S.adm.exams || []).filter(function(x){ return x.id === el.dataset.id; })[0]; if (!e) return;
+    ask({ title: 'Xóa đề “' + e.name + '”?', body: 'Đề sẽ biến mất khỏi ngân hàng của người học. Kết quả làm bài đã lưu vẫn được giữ. Bạn có thể tải JSON của đề trước để cất riêng.', ok: 'Xóa đề', danger: true }).then(function(v){
+      if (!v) return;
+      admRun(async function(){ await admPost('exam_delete', { id: e.id }); toast('Đã xóa đề.'); await admReloadExams(); });
+    });
+  },
+  admDownload: function(el){ admDownload(el.dataset.id); },
+  admReset: function(el){
+    var u = (S.adm.users || []).filter(function(x){ return x.id === el.dataset.id; })[0]; if (!u) return;
+    ask({ title: 'Đặt lại mật khẩu của ' + u.username + '?', body: 'Web sẽ tạo một mật khẩu tạm và đăng xuất người này khỏi mọi máy. Kết quả làm bài của họ được giữ nguyên.', ok: 'Đặt lại' }).then(function(v){
+      if (!v) return;
+      admRun(async function(){ S.adm.tempPw = await admPost('user_reset', { id: u.id }); S.adm.users = (await api('GET', '/api/admin?action=users')).users; });
+    });
+  },
+  admDisable: function(el){
+    var u = (S.adm.users || []).filter(function(x){ return x.id === el.dataset.id; })[0]; if (!u) return;
+    admRun(async function(){ await admPost('user_disable', { id: u.id, disabled: !u.is_disabled }); S.adm.users = (await api('GET', '/api/admin?action=users')).users; toast(u.is_disabled ? 'Đã mở khóa.' : 'Đã khóa tài khoản.'); });
+  },
+  admAdmin: function(el){
+    var u = (S.adm.users || []).filter(function(x){ return x.id === el.dataset.id; })[0]; if (!u) return;
+    ask({ title: (u.is_admin ? 'Gỡ quyền admin của ' : 'Cấp quyền admin cho ') + u.username + '?', body: u.is_admin ? 'Người này sẽ không còn vào được khu Quản lý.' : 'Người này sẽ xem được kết quả của mọi người, sửa đề và đặt lại mật khẩu.', ok: 'Đồng ý' }).then(function(v){
+      if (!v) return;
+      admRun(async function(){ await admPost('user_admin', { id: u.id, isAdmin: !u.is_admin }); S.adm.users = (await api('GET', '/api/admin?action=users')).users; toast('Đã cập nhật quyền.'); });
+    });
+  },
+  admCopyPw: function(){ if (S.adm.tempPw) copyText(S.adm.tempPw.password, 'Đã sao chép mật khẩu tạm.'); },
+  admClosePw: function(){ S.adm.tempPw = null; render(); },
+  authTab: function(el){ S.authTab = el.dataset.t; S.authErr = ''; render(); },
+  logout: function(){
+    api('POST', '/api/auth?action=logout', {}).catch(function(){}).then(function(){
+      clearData(); S.user = null; S.authTab = 'login'; S.authErr = ''; S.authName = ''; render();
+    });
+  }
 };
 var app = $('#app');
 $('#top').addEventListener('click', function(e){ var el = e.target.closest('[data-act]'); if (el && actions[el.dataset.act]) actions[el.dataset.act](el, e); });
 app.addEventListener('click', function(e){ var el = e.target.closest('[data-act]'); if (el && !el.disabled && actions[el.dataset.act]) actions[el.dataset.act](el, e); });
 app.addEventListener('change', function(e){
   var t = e.target, k = t.dataset.chg, b = S.build;
-  if (k === 'adminDir'){ readDirFallback(t.files); return; }
+  if (k === 'admFile'){
+    var f = t.files && t.files[0]; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function(){
+      S.adm.jsonIn = String(rd.result); if (!S.adm.nameIn) S.adm.nameIn = f.name.replace(/\.json$/i, '');
+      var ta = $('#admJson'), ni = $('#admName'); if (ta) ta.value = S.adm.jsonIn; if (ni) ni.value = S.adm.nameIn;
+      toast('Đã đọc tệp. Bấm “Lưu đề” để thêm.');
+    };
+    rd.readAsText(f); return;
+  }
   if (!k) return;
   if (k === 'exam'){ if (t.checked) b.selExams[t.value] = true; else delete b.selExams[t.value]; b.selSections = null; b.secCount = {}; render(); }
   else if (k === 'secOn'){
@@ -1081,7 +1226,9 @@ app.addEventListener('change', function(e){
 });
 app.addEventListener('input', function(e){
   var t = e.target, k = t.dataset.chg, b = S.build;
-  if (t.id === 'adminKey'){ A.keyIn = t.value; return; }
+  if (t.id === 'admJson'){ S.adm.jsonIn = t.value; return; }
+  if (t.id === 'admName'){ S.adm.nameIn = t.value; return; }
+  if (t.dataset.ed){ S.adm.editBuf[t.dataset.ed] = t.value; return; }
   if (k === 'secN'){
     var sec = t.dataset.sec, max = secMax(sec), v = parseInt(t.value, 10);
     if (isNaN(v)) v = 0;
@@ -1091,7 +1238,12 @@ app.addEventListener('input', function(e){
   }
   else if (k === 'minutes'){ b.minutes = Math.max(0, parseInt(t.value, 10) || 0); updateSummary(); }
 });
-app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target.id === 'adminKey'){ e.preventDefault(); actions.adminLogin(); } });
+app.addEventListener('submit', function(e){
+  var f = e.target.closest('form[data-form="auth"]');
+  if (f){ e.preventDefault(); doAuth(f); return; }
+  var g = e.target.closest('form[data-form="pw"]');
+  if (g){ e.preventDefault(); doChangePw(g); }
+});
 document.addEventListener('keydown', function(e){
   if (S.view !== 'exam' || document.querySelector('.scrim')) return;
   if (e.target.matches('input,textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1105,18 +1257,13 @@ window.addEventListener('beforeunload', function(e){ if (S.view === 'exam'){ e.p
 window.addEventListener('hashchange', function(){
   if (S.view === 'exam') return;
   var v = viewFromHash(location.hash.replace('#', ''));
-  if (v && v !== S.view){ S.view = v; render(); if (v === 'admin' && A.unlocked) adminRestore(); }
+  if (v && v !== S.view){ S.view = v; render(); enterView(v); }
 });
 
 /* ---------- start ---------- */
-load();
-fixLevels();
-ensureBuildSel();
 S.view = viewFromHash(location.hash.replace('#', '')) || 'bank';
 render();
-loadAdmin();
-autoLoad();
-if (S.view === 'admin' && A.unlocked) adminRestore();
+boot();
 })();
 </script>
 </body>

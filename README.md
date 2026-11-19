@@ -1,31 +1,32 @@
-# Luyện đề JLPT
+# Luyện đề JLPT (Vercel + Neon)
 
-Trang web cho người học: xem đề theo cấp, thi từng đề, trộn nhiều đề và chọn số câu từng phần.
+Trang luyện đề có tài khoản: đăng ký, đăng nhập, thi, lưu kết quả mỗi lần nộp bài, xem lịch sử. Admin quản lý đề (dán JSON), người dùng và kết quả ngay trên web.
 
-## Cấu trúc
+## Luồng sử dụng
 
-```
-index.html          Toàn bộ trang web
-json/               Mỗi đề là một tệp .json
-  _danh-sach.js     Danh sách đề, tạo ra từ chính trang web (xem bên dưới)
-README.md
-```
+1. **Người học:** vào trang, Tạo tài khoản (chỉ cần tên đăng nhập và mật khẩu), đăng nhập.
+2. Chọn đề ở **Ngân hàng đề** hoặc **Tạo bài thi** (chọn cấp, đề, số câu từng phần), làm bài, nộp.
+3. Mỗi lần nộp, kết quả được lưu: số câu đúng, sai, bỏ trống, điểm từng phần, thời gian làm, đề nào. Xem lại ở tab **Lịch sử** (kèm số lần làm, số câu đã làm, tỉ lệ đúng, số ngày đã luyện).
+4. **Tài khoản** (bấm vào tên): đổi mật khẩu. Quên mật khẩu thì nhắn tin cho admin Anh Hào (đổi tên ở dòng `ADMIN_CONTACT` đầu phần script của `public/index.html`).
+5. **Admin** thấy thêm tab **Quản lý**: Đề thi (dán JSON, sửa tên và cấp, tải JSON, xóa), Người dùng (đặt lại mật khẩu, khóa, cấp hoặc gỡ quyền admin), Kết quả của mọi người.
 
-## Thêm đề mới (người đăng đề)
+## Cài đặt (làm một lần)
 
-1. Bỏ tệp `.json` của đề vào thư mục `json/`.
-2. Bấm nút **Quản lý** ở góc trên của trang. Nhập **key admin** (đặt ở dòng `ADMIN_KEY` đầu phần script) rồi bấm Xác nhận.
-3. Bước 1: bấm **Chọn thư mục json**, chọn thư mục `json` trong dự án (hoặc cả thư mục dự án) rồi cho phép. Web nhớ thư mục này cho các lần sau, lần sau chỉ cần bấm **Dùng lại thư mục**.
-4. Bước 2: bấm **Tạo và lưu vào thư mục**. Web lưu thẳng `json/_danh-sach.js` vào thư mục.
-5. Commit và push.
+1. **GitHub:** thay toàn bộ nội dung repo bằng thư mục này, commit và push.
+2. **Vercel:** vercel.com, Add New, Project, chọn repo. Framework Preset để **Other**, các ô khác để mặc định. Bấm Deploy.
+3. **Neon:** trong project Vercel vào **Storage**, tạo database **Neon** và nối vào project (bật cả Production và Preview). Vercel tự thêm biến `DATABASE_URL`.
+4. **Admin:** vào **Settings, Environment Variables**, thêm hai biến:
+   - `ADMIN_USERNAME`: tên đăng nhập admin (3 đến 30 ký tự, chữ không dấu, số, `.` `_` `-`)
+   - `ADMIN_PASSWORD`: mật khẩu (từ 8 ký tự)
+5. **Redeploy** (tab Deployments). Mở trang web và đăng nhập bằng tài khoản admin vừa đặt.
 
-Chỉ Chrome và Edge (máy tính) lưu thẳng được. Trình duyệt khác sẽ tải `_danh-sach.js` về để bạn tự chép vào `json/`.
+Không cần chạy SQL. Bảng được tự tạo ở lần gọi đầu tiên sau mỗi lần deploy, và 4 đề trong `data/exams/` được nạp vào cơ sở dữ liệu một lần duy nhất. Tài khoản admin chỉ được tạo nếu chưa có. Sau khi vào được, hãy đổi mật khẩu ở mục Tài khoản (mật khẩu trong biến môi trường chỉ dùng để tạo tài khoản lần đầu, đổi trong web sẽ không ảnh hưởng tới biến đó).
 
-Người học luôn đọc đề từ `json/_danh-sach.js`, nên **thêm tệp .json mà chưa tạo lại danh sách thì người học chưa thấy đề mới**.
+## Đề nằm ở đâu
 
-Người học cũng thấy nút Quản lý nhưng không có key thì không vào được. Key nằm ngay trong mã nguồn nên chỉ để người học không bấm nhầm, không phải khóa bảo mật. Khu quản lý không sửa được gì trên web, chỉ tạo ra tệp danh sách trong thư mục ở máy bạn.
+Sau lần nạp đầu, đề nằm trong cơ sở dữ liệu. Thêm, sửa, xóa đề ở **Quản lý, Đề thi**, không cần commit. Thư mục `data/exams/` chỉ là bộ đề nạp ban đầu: sửa tệp trong đó sau khi đã deploy sẽ **không** thay đổi đề đang có.
 
-## Định dạng tệp JSON
+Định dạng JSON của một đề:
 
 ```json
 {
@@ -47,11 +48,37 @@ Người học cũng thấy nút Quản lý nhưng không có key thì không v�
 
 - Bắt buộc: `section`, `text`, `choices` (2 đến 6 đáp án), `answer` (số thứ tự đáp án đúng, đếm từ 1).
 - Không bắt buộc: `sectionTitle`, `mondai`, `instruction`, `passage`, `group`, `explanation`.
-- Các câu cùng một bài đọc dùng chung `group` và `passage` để luôn đi liền nhau.
-- Từ gạch chân viết trong hai dấu gạch dưới, ví dụ `__映画__`.
-- Đặt tên đề dạng `N4 T7/2021` để trang tự xếp theo cấp, năm, tháng.
-- Tệp sai định dạng sẽ không có trong danh sách. Trang `#quan-ly` liệt kê các tệp lỗi và lý do.
+- Các câu cùng một bài đọc dùng chung `group` và `passage` để đi liền nhau. Từ gạch chân viết trong hai dấu gạch dưới, ví dụ `__映画__`.
+- Đặt tên đề dạng `N4 T7/2021` để tự xếp theo cấp, năm, tháng. Có thể dán nhiều đề một lần bằng `{"exams": [ ... ]}`.
 
-## Cách trang đọc danh sách đề
+## Logo
 
-Thứ tự thử: danh sách thư mục của máy chủ (Live Server, `python -m http.server`) → `json/_danh-sach.js` → hỏi GitHub (chỉ khi không có tệp danh sách) → `json/index.json`.
+Logo nằm ở `public/logo.png` (hiện ở thanh trên cùng và màn đăng nhập). Muốn đổi thì thay tệp này, giữ tên `logo.png`. Nên dùng PNG nền trong suốt, tỉ lệ ngang khoảng 3:1 (ảnh hiện tại 160 x 52). Ở chế độ tối, logo tự đặt trên nền trắng nhỏ để chữ đen vẫn đọc được.
+
+## Cấu trúc
+
+```
+public/index.html      Giao diện
+public/logo.png        Logo
+api/auth.js            Đăng ký, đăng nhập, đăng xuất, đổi mật khẩu
+api/exams.js           Đề cho người đã đăng nhập
+api/attempts.js        Lưu kết quả làm bài, xem lịch sử
+api/admin.js           Quản lý (chỉ admin)
+api/_lib/              Mã dùng chung (kết nối, bảng, mật khẩu, phiên)
+data/exams/            Bộ đề nạp ban đầu
+vercel.json            Cấu hình Vercel
+```
+
+Các bảng: `users` (có cờ `is_admin` và `is_disabled`), `sessions`, `exams`, `attempts`, `auth_events`, `settings`.
+
+## An toàn: đã làm gì và còn gì
+
+- Mật khẩu được băm bằng scrypt. Mã phiên chỉ lưu bản băm, cookie ẩn với trang (HttpOnly, Secure, SameSite=Lax), hạn 30 ngày. Đổi mật khẩu hoặc đặt lại sẽ đăng xuất các máy khác.
+- Nhập sai mật khẩu quá nhiều lần bị chặn 15 phút. Đăng ký tối đa 60 lượt mỗi giờ từ một địa chỉ mạng (vì không còn mã lớp, đây là chốt chặn spam).
+- Cờ admin và trạng thái khóa luôn được máy chủ đọc lại từ cơ sở dữ liệu ở mỗi yêu cầu. Mọi API quản lý đều kiểm tra quyền admin ở máy chủ.
+- Còn lại: đáp án nằm trong dữ liệu đề gửi xuống trình duyệt của người đã đăng nhập, và điểm do trình duyệt tính rồi gửi lên, nên người học có thể sửa điểm của chính mình. Admin nên coi bảng kết quả là tham khảo luyện tập, không phải điểm thi chính thức.
+- Không có email nên không có "quên mật khẩu" tự động.
+
+## Chưa làm
+
+Lưu từng câu đã chọn (để xem lại bài cũ và thống kê câu hay sai), làm dở rồi làm tiếp, chấm điểm trên máy chủ.

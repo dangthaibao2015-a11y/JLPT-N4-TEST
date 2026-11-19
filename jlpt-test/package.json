@@ -1,0 +1,12 @@
+{
+  "name": "jlpt-test",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Luyện đề JLPT: tài khoản, đăng nhập, lưu bài làm (Vercel + Neon)",
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

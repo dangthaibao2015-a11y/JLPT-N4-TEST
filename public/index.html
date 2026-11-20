@@ -288,8 +288,8 @@ textarea.fld{resize:vertical;line-height:1.7}
 .kgroup>.btn{margin-bottom:6px}
 .kana-card{background:var(--card);border:1px solid var(--ink);border-radius:4px;padding:22px 26px 26px;max-width:520px;text-align:center}
 .kana-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.kinput{max-width:260px;text-align:center;font-size:1.5rem;padding:10px 12px}
 .kana{font-family:var(--jp);font-size:clamp(5rem,26vw,9rem);line-height:1.15;margin:10px 0 14px}
+.kinput{max-width:260px;text-align:center;font-size:1.5rem;padding:10px 12px}
 .kfb{margin:0 0 8px;font-size:1.05rem}
 .kfb.ok{color:var(--ok)}
 .kfb.bad{color:var(--bad)}
@@ -297,6 +297,11 @@ textarea.fld{resize:vertical;line-height:1.7}
 .kw{display:grid;justify-items:center;border:1px solid var(--line);border-radius:6px;background:var(--card);padding:8px 14px;min-width:64px}
 .kw .jp{font-size:2rem;line-height:1.2}
 .kw small{color:var(--ink-2)}
+/* chế độ HSK, khách */
+.modeseg button{padding:5px 12px;font-weight:600}
+.userbox{flex-wrap:wrap}
+.guestbox{max-width:420px;margin-top:26px;padding-top:18px;border-top:1px solid var(--line)}
+.jp:lang(zh-Hans),[lang="zh-Hans"]{font-family:'Microsoft YaHei','微软雅黑','PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif}
 /* dialog + toast */
 .scrim{position:fixed;inset:0;background:rgba(10,14,22,.55);display:grid;place-items:center;z-index:50;padding:20px}
 .dlg{background:var(--card);border:1px solid var(--ink);border-radius:6px;padding:24px;max-width:420px;width:100%}
@@ -331,6 +336,7 @@ textarea.fld{resize:vertical;line-height:1.7}
 
 /* ===== CÀI ĐẶT ===== */
 var ADMIN_CONTACT = 'Anh Hào';   // người được nhắn tin khi quên mật khẩu
+var SHOW_LOGO = false;           // true = hiện logo ở thanh trên (public/logo.png), false = không hiện
 /* ================== */
 
 /* ---------- helpers ---------- */
@@ -390,8 +396,12 @@ function normalize(data, fallbackName){
   return { errors: errors, exams: exams };
 }
 /* ---------- levels ---------- */
-var LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'];
-function normLevel(s){ var m = String(s || '').toUpperCase().match(/N\s*([1-5])/); return m ? 'N' + m[1] : ''; }
+var LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1', 'HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'];
+function normLevel(s){
+  var t = String(s || '').toUpperCase(), h = t.match(/HSK\s*([1-6])/);
+  if (h) return 'HSK' + h[1];
+  var m = t.match(/N\s*([1-5])/); return m ? 'N' + m[1] : '';
+}
 function levelKey(e){ return normLevel(e.level) || '?'; }
 function lvLabel(k){ return k === '?' ? 'Chưa phân cấp' : k; }
 function examMeta(e){
@@ -426,6 +436,7 @@ function groupExams(){
 var S = {
   view: 'bank', expanded: {},
   bankLv: 'all', loading: false, problems: [], loadErr: '',
+  mode: 'jlpt', guest: false, raw: [],
   user: null, booting: true, authTab: 'login', authBusy: false, authErr: '', authName: '',
   hist: { loading: false, err: '', stats: null, items: null },
   acct: { msg: '', err: '', busy: false },
@@ -472,19 +483,32 @@ function ask(o){
 
 /* ---------- header ---------- */
 function brandHTML(){
-  return '<div class="brand"><span class="brand-jp" lang="ja">模試</span><span>Luyện đề JLPT</span></div>';
+  var hsk = S.mode === 'hsk';
+  var name = '<span class="brand-jp" lang="' + (hsk ? 'zh-Hans' : 'ja') + '">' + (hsk ? '考试' : '模試') + '</span><span>Luyện đề ' + (hsk ? 'HSK' : 'JLPT') + '</span>';
+  if (!SHOW_LOGO) return '<div class="brand">' + name + '</div>';
+  var logo = '<span class="logo-plate"><img class="logo-img" src="/logo.png" width="105" height="34" alt="ACT Brain Vietnam"></span>';
+  var home = ((S.user || S.guest) && S.view !== 'exam') ? '<button type="button" class="logo-btn" data-act="go" data-view="bank" title="Về Ngân hàng đề">' + logo + '</button>' : logo;
+  return '<div class="brand">' + home + '<span class="brand-sep" aria-hidden="true"></span>' + name + '</div>';
 }
 function renderHeader(){
-  var h = '<div class="top-in">' + brandHTML();
-  if (S.user && S.view === 'exam'){
+  var h = '<div class="top-in">' + brandHTML(), inApp = S.user || S.guest;
+  if (inApp && S.view === 'exam'){
     h += '<div class="top-tools"><span class="timer" id="timer"></span><button type="button" class="btn quiet" data-act="exit">Thoát</button><button type="button" class="btn primary" data-act="submit">Nộp bài</button></div>';
-  } else if (S.user){
-    var tabs = [['bank','Ngân hàng đề'],['build','Tạo bài thi'],['kana','Học chữ'],['history','Lịch sử']];
-    if (S.user.isAdmin) tabs.push(['admin','Quản lý']);
+  } else if (inApp){
+    var tabs = [['bank', 'Ngân hàng đề'], ['build', 'Tạo bài thi']];
+    if (S.mode === 'jlpt') tabs.push(['kana', 'Học chữ']);
+    if (S.user) tabs.push(['history', 'Lịch sử']);
+    if (S.user && S.user.isAdmin) tabs.push(['admin', 'Quản lý']);
     h += '<nav class="tabs" aria-label="Chính">' + tabs.map(function(t){
       return '<button type="button" class="tab" data-act="go" data-view="' + t[0] + '"' + (S.view === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>';
-    }).join('') + '</nav>' +
-      '<div class="userbox"><button type="button" class="btn quiet who" data-act="go" data-view="account" title="Tài khoản của bạn">' + esc(S.user.username) + (S.user.isAdmin ? ' <span class="badge ai">Admin</span>' : '') + '</button><button type="button" class="btn quiet" data-act="logout">Đăng xuất</button></div>';
+    }).join('') + '</nav>';
+    if (S.user){
+            var sw = S.user.isAdmin ? '<div class="seg modeseg" role="group" aria-label="Chế độ xem">' + [['jlpt', 'JLPT'], ['hsk', 'HSK']].map(function(m){
+        return '<button type="button" data-act="setMode" data-m="' + m[0] + '" aria-pressed="' + (S.mode === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div>' : '';
+      h += '<div class="userbox">' + sw + '<button type="button" class="btn quiet who" data-act="go" data-view="account" title="Tài khoản của bạn">' + esc(S.user.username) + (S.user.isAdmin ? ' <span class="badge ai">Admin</span>' : '') + '</button><button type="button" class="btn quiet" data-act="logout">Đăng xuất</button></div>';
+    } else {
+      h += '<div class="userbox"><span class="badge manual">Khách</span><button type="button" class="btn quiet" data-act="goAuth" data-t="login">Đăng nhập</button><button type="button" class="btn" data-act="goAuth" data-t="register">Tạo tài khoản</button></div>';
+    }
   }
   $('#top').innerHTML = h + '</div>';
 }
@@ -515,9 +539,9 @@ function examRowHTML(ex){
   return h + '</li>';
 }
 function bankHTML(){
-  var h = '<h1 class="page-title">Ngân hàng đề</h1><p class="lede">Đề được xếp theo cấp (N5 đến N1), rồi theo năm, rồi theo tháng. Chọn một đề để thi ngay, hoặc sang “Tạo bài thi” để trộn nhiều đề và chọn số câu từng phần.</p>';
+  var h = '<h1 class="page-title">Ngân hàng đề</h1><p class="lede">Đề được xếp theo cấp (' + (S.mode === 'hsk' ? 'HSK1 đến HSK6' : 'N5 đến N1') + '), rồi theo năm, rồi theo tháng. Chọn một đề để thi ngay, hoặc sang “Tạo bài thi” để trộn nhiều đề và chọn số câu từng phần.</p>';
   if (S.loading && !db.exams.length) return h + '<p class="muted">Đang tải danh sách đề…</p>';
-  if (!db.exams.length) return h + '<div class="empty"><p>' + (S.loadErr ? 'Chưa tải được danh sách đề: ' + esc(S.loadErr) : 'Hiện chưa có đề nào trong ngân hàng.') + '</p></div>';
+  if (!db.exams.length) return h + '<div class="empty"><p>' + (S.loadErr ? 'Chưa tải được danh sách đề: ' + esc(S.loadErr) : emptyMsg('Hiện chưa có đề nào trong ngân hàng.')) + '</p></div>';
   var groups = groupExams();
   if (S.bankLv !== 'all' && !groups.some(function(g){ return g.k === S.bankLv; })) S.bankLv = 'all';
   h += '<div class="chips" role="group" aria-label="Lọc theo cấp"><button type="button" class="chip" data-act="bankLv" data-lv="all" aria-pressed="' + (S.bankLv === 'all') + '">Tất cả<span class="n">' + db.exams.length + '</span></button>' +
@@ -599,7 +623,7 @@ function pickQuestions(){
 }
 function buildHTML(){
   if (!db.exams.length){
-    return '<h1 class="page-title">Tạo bài thi</h1><div class="empty"><p>' + (S.loadErr ? 'Chưa tải được danh sách đề: ' + esc(S.loadErr) : 'Hiện chưa có đề nào để thi.') + '</p></div>';
+    return '<h1 class="page-title">Tạo bài thi</h1><div class="empty"><p>' + (S.loadErr ? 'Chưa tải được danh sách đề: ' + esc(S.loadErr) : emptyMsg('Hiện chưa có đề nào để thi.')) + '</p></div>';
   }
   ensureBuildSel();
   var b = S.build, secs = availSections(), groups = groupExams();
@@ -722,7 +746,7 @@ function finish(auto){
   stopTimer(); var ex = S.ex; ex.end = Date.now(); ex.filter = 'all'; ex.clientId = newId(); ex.auto = !!auto;
   S.view = 'result'; render(); window.scrollTo(0, 0);
   if (auto) toast('Hết giờ, bài đã được nộp tự động.');
-  saveAttempt(ex);
+  if (!S.guest) saveAttempt(ex);
 }
 
 /* ---------- result ---------- */
@@ -808,11 +832,33 @@ async function api(method, url, body, cacheMode){
   if (!r.ok){ var er = new Error((data && data.error) || ('Lỗi ' + r.status)); er.status = r.status; er.data = data; throw er; }
   return data;
 }
+// Chế độ do cờ HSK của tài khoản quyết định: có cờ thì chỉ HSK, không có cờ (và khách) thì chỉ JLPT.
+function syncMode(){ S.mode = (S.user && S.user.canHsk) ? 'hsk' : 'jlpt'; S.bankLv = 'all'; }
+function modeOfText(text){
+  try {
+    var j = JSON.parse(text), e = Array.isArray(j) ? null : (j.exams ? j.exams[0] : j);
+    var lvl = e ? (normLevel(e.level) || normLevel(e.name)) : '';
+    return /^HSK/.test(lvl) ? 'hsk' : 'jlpt';
+  } catch (x) { return 'jlpt'; }
+}
+function applyMode(){
+  var list = (S.raw || []).filter(function(f){ return modeOfText(f.text) === S.mode; }).map(function(f){ return { path: f.path, text: f.text, mtime: 0 }; });
+  loadEntries(list, []);
+}
+function emptyMsg(def){ return S.mode === 'hsk' ? 'Chưa có đề HSK nào.' : def; }
+function guardView(){
+  if (S.guest && ['history', 'account', 'admin'].indexOf(S.view) >= 0) S.view = 'bank';
+  if (S.mode === 'hsk' && S.view === 'kana') S.view = 'bank';
+}
+function applyLang(){
+  if (S.mode !== 'hsk') return;
+  Array.prototype.forEach.call(document.querySelectorAll('#app [lang="ja"], #top [lang="ja"]'), function(e){ e.setAttribute('lang', 'zh-Hans'); });
+}
 async function loadExams(){
   S.loading = true; S.loadErr = ''; render();
   try {
-    var d = await api('GET', '/api/exams', null, 'default');
-    loadEntries(d.files.map(function(f){ return { path: f.path, text: f.text, mtime: 0 }; }), []);
+    var d = await api('GET', S.guest ? '/api/exams?guest=1' : '/api/exams', null, 'default');
+    S.raw = d.files; applyMode();
   } catch (e){
     if (e.status === 401){ clearData(); S.user = null; S.authErr = 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.'; }
     else S.loadErr = e.message;
@@ -822,7 +868,7 @@ async function loadExams(){
 async function boot(){
   try { var d = await api('GET', '/api/auth?action=me'); S.user = d.user; }
   catch (e){ S.user = null; S.authErr = e.message; }
-  S.booting = false; render();
+  syncMode(); S.booting = false; render();
   if (S.user){ loadExams(); enterView(S.view); }
 }
 function sessionExpired(){
@@ -831,7 +877,7 @@ function sessionExpired(){
 function clearData(){
   db.exams = []; db.questions = []; S.problems = [];
   S.build.level = ''; S.build.selExams = {}; S.build.selSections = null; S.build.secCount = {};
-  S.expanded = {}; stopTimer(); S.ex = null; S.view = 'bank'; S.kana = null;
+  S.expanded = {}; stopTimer(); S.ex = null; S.view = 'bank'; S.kana = null; S.guest = false; S.mode = 'jlpt'; S.raw = [];
   S.hist = { loading: false, err: '', stats: null, items: null };
   S.adm = { tab: 'exams', loading: false, busy: false, err: '', exams: null, users: null, results: null, jsonIn: '', nameIn: '', errs: null, editing: null, editBuf: null, tempPw: null };
 }
@@ -845,7 +891,7 @@ async function doAuth(form){
   S.authBusy = true; S.authErr = ''; render();
   try {
     var d = await api('POST', '/api/auth?action=' + mode, body);
-    S.user = d.user; S.authBusy = false; S.authName = ''; S.authErr = ''; render(); loadExams(); enterView(S.view); return;
+    S.user = d.user; S.guest = false; syncMode(); S.authBusy = false; S.authName = ''; S.authErr = ''; render(); loadExams(); enterView(S.view); return;
   } catch (e){ S.authErr = e.message; }
   S.authBusy = false; render();
 }
@@ -859,7 +905,7 @@ function authHTML(){
     '<label>Mật khẩu<input class="fld" type="password" name="password" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" maxlength="128"></label>';
   if (reg) h += '<label>Nhập lại mật khẩu<input class="fld" type="password" name="password2" autocomplete="new-password" maxlength="128"></label>' +
     '<p class="muted" style="margin:0;font-size:.86rem">Tên đăng nhập gồm 3 đến 30 ký tự: chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang. Mật khẩu từ 8 ký tự.</p>';
-  h += '<button type="submit" class="btn primary big">' + (S.authBusy ? 'Đang xử lý…' : (reg ? 'Tạo tài khoản' : 'Đăng nhập')) + '</button></fieldset></form>' + (reg ? '' : '<details class="forgot"><summary>Quên mật khẩu?</summary><p>Hãy nhắn tin cho admin <strong>' + esc(ADMIN_CONTACT) + '</strong> để được đặt lại mật khẩu.</p></details>') + '</div>';
+  h += '<button type="submit" class="btn primary big">' + (S.authBusy ? 'Đang xử lý…' : (reg ? 'Tạo tài khoản' : 'Đăng nhập')) + '</button></fieldset></form>' + (reg ? '' : '<details class="forgot"><summary>Quên mật khẩu?</summary><p>Hãy nhắn tin cho admin <strong>' + esc(ADMIN_CONTACT) + '</strong> để được đặt lại mật khẩu.</p></details>') + '<div class="guestbox"><p class="muted" style="margin:0 0 8px">Chỉ muốn xem thử?</p><button type="button" class="btn" data-act="guestStart">Dùng thử không cần tài khoản</button><p class="muted" style="margin:8px 0 0;font-size:.86rem">Khách học như người dùng thường nhưng không lưu kết quả và lịch sử.</p></div></div>';
   return h;
 }
 
@@ -929,6 +975,7 @@ async function saveAttempt(ex){
   if (S.ex === ex && S.view === 'result') render();
 }
 function saveLineHTML(ex){
+  if (S.guest) return '<p class="savebar">Bạn đang dùng với tư cách khách nên kết quả không được lưu. <button type="button" class="btn" data-act="goAuth" data-t="register">Tạo tài khoản</button></p>';
   var st = ex.save || { state: 'saving' };
   if (st.state === 'saved') return '<p class="savebar ok">Đã lưu kết quả vào Lịch sử.</p>';
   if (st.state === 'error') return '<p class="savebar bad">Chưa lưu được kết quả: ' + esc(st.msg) + ' <button type="button" class="btn" data-act="retrySave">Thử lưu lại</button></p>';
@@ -984,6 +1031,7 @@ async function doChangePw(form){
 
 /* ---------- khu quản lý (chỉ admin) ---------- */
 function enterView(v){
+  if (!S.user) return;
   if (v === 'history') loadHistory();
   else if (v === 'admin' && S.user && S.user.isAdmin) admLoad(S.adm.tab);
   else if (v === 'account') S.acct = { msg: '', err: '', busy: false };
@@ -1078,9 +1126,9 @@ function admUsersHTML(){
     '<p class="muted" style="margin:8px 0 0">Gửi mật khẩu này cho học viên. Họ đăng nhập rồi đổi ở mục Tài khoản. Mật khẩu chỉ hiện một lần, đóng đi là không xem lại được.</p></div>';
   h += '<ul class="exam-list">' + (A.users || []).map(function(u){
     var me = u.id === S.user.id;
-    return '<li class="exam-row"><div class="exam-head"><div><div class="exam-title"><h3>' + esc(u.username) + '</h3>' + (u.is_admin ? '<span class="badge ai">Admin</span>' : '') + (u.is_disabled ? '<span class="badge warn">Đã khóa</span>' : '') + (me ? '<span class="muted">(bạn)</span>' : '') + '</div>' +
+    return '<li class="exam-row"><div class="exam-head"><div><div class="exam-title"><h3>' + esc(u.username) + '</h3>' + (u.is_admin ? '<span class="badge ai">Admin</span>' : '') + (u.can_hsk ? '<span class="badge pdf">HSK</span>' : '') + (u.is_disabled ? '<span class="badge warn">Đã khóa</span>' : '') + (me ? '<span class="muted">(bạn)</span>' : '') + '</div>' +
       '<p class="exam-meta">Tạo ' + esc(fmtDate(u.created_at)) + '. Đăng nhập gần nhất: ' + (u.last_login_at ? esc(fmtDate(u.last_login_at)) : 'chưa lần nào') + '. ' + u.attempts + ' lần làm bài.</p></div>' +
-      (me ? '' : '<div class="exam-actions"><button type="button" class="btn" data-act="admReset" data-id="' + u.id + '">Đặt lại mật khẩu</button><button type="button" class="btn" data-act="admDisable" data-id="' + u.id + '">' + (u.is_disabled ? 'Mở khóa' : 'Khóa') + '</button><button type="button" class="btn" data-act="admAdmin" data-id="' + u.id + '">' + (u.is_admin ? 'Gỡ quyền admin' : 'Cấp quyền admin') + '</button></div>') + '</div></li>';
+      '<div class="exam-actions"><button type="button" class="btn" data-act="admHsk" data-id="' + u.id + '">' + (u.can_hsk ? 'Gỡ quyền HSK' : 'Cấp quyền HSK') + '</button>' + (me ? '' : '<button type="button" class="btn" data-act="admReset" data-id="' + u.id + '">Đặt lại mật khẩu</button><button type="button" class="btn" data-act="admDisable" data-id="' + u.id + '">' + (u.is_disabled ? 'Mở khóa' : 'Khóa') + '</button><button type="button" class="btn" data-act="admAdmin" data-id="' + u.id + '">' + (u.is_admin ? 'Gỡ quyền admin' : 'Cấp quyền admin') + '</button>') + '</div></div></li>';
   }).join('') + '</ul>';
   return h;
 }
@@ -1242,7 +1290,8 @@ function render(){
   renderHeader();
   var app = $('#app');
   if (S.booting){ app.innerHTML = '<p class="muted">Đang tải…</p>'; return; }
-  if (!S.user){ app.innerHTML = authHTML(); return; }
+  if (!S.user && !S.guest){ app.innerHTML = authHTML(); return; }
+  guardView();
   if (S.view === 'bank') app.innerHTML = bankHTML();
   else if (S.view === 'build'){ app.innerHTML = buildHTML(); updateSummary(); }
   else if (S.view === 'exam'){ app.innerHTML = examShell(); renderQuestion(); renderSheet(); renderTimer(); }
@@ -1251,6 +1300,7 @@ function render(){
   else if (S.view === 'history') app.innerHTML = histHTML();
   else if (S.view === 'account') app.innerHTML = accountHTML();
   else if (S.view === 'admin') app.innerHTML = S.user.isAdmin ? adminHTML() : '<div class="empty"><p>Bạn không có quyền vào khu này.</p></div>';
+  applyLang();
 }
 function viewFromHash(h){ return ['bank', 'build', 'kana', 'history', 'account', 'admin'].indexOf(h) >= 0 ? h : null; }
 function goView(v){
@@ -1355,6 +1405,23 @@ var actions = {
   kanaSetup: function(){ kst().run = null; render(); },
   kanaAgain: function(){ var c = kst().cfg; kanaStart(kanaPool(c), c); render(); },
   kanaRetryWrong: function(){ var r = kst().run; if (!r || !r.wrongList.length) return; kanaStart(r.wrongList.slice(), { script: r.cfg.script, rows: r.cfg.rows, order: 'rand', count: 0 }); render(); },
+  guestStart: function(){ S.guest = true; S.user = null; S.mode = 'jlpt'; S.view = 'bank'; S.authErr = ''; render(); loadExams(); },
+  goAuth: function(el){ clearData(); S.authTab = el.dataset.t || 'login'; S.authErr = ''; render(); },
+  setMode: function(el){
+    var m = el.dataset.m;
+    if (!S.user || !S.user.isAdmin || m === S.mode) return;
+    S.mode = m; S.bankLv = 'all'; S.build.level = ''; S.build.selExams = {}; S.build.selSections = null; S.build.secCount = {};
+    if (m === 'hsk' && S.view === 'kana') S.view = 'bank';
+    applyMode(); render();
+  },
+  admHsk: function(el){
+    var u = (S.adm.users || []).filter(function(x){ return x.id === el.dataset.id; })[0]; if (!u) return;
+    admRun(async function(){
+      await admPost('user_hsk', { id: u.id, canHsk: !u.can_hsk });
+      if (u.id === S.user.id) S.user.canHsk = !u.can_hsk;
+      S.adm.users = (await api('GET', '/api/admin?action=users')).users; toast(u.can_hsk ? 'Đã gỡ quyền HSK.' : 'Đã cấp quyền HSK.');
+    });
+  },
   authTab: function(el){ S.authTab = el.dataset.t; S.authErr = ''; render(); },
   logout: function(){
     api('POST', '/api/auth?action=logout', {}).catch(function(){}).then(function(){
@@ -1389,7 +1456,7 @@ app.addEventListener('input', function(e){
   var t = e.target, k = t.dataset.chg, b = S.build;
   if (t.id === 'admJson'){ S.adm.jsonIn = t.value; return; }
   if (t.id === 'admName'){ S.adm.nameIn = t.value; return; }
-  if (t.dataset.ed){ S.adm.editBuf[t.dataset.ed] = t.value; return; }
+  if (t.dataset.ed){ S.adm.editBuf[t.dataset.ed] = t.type === 'checkbox' ? t.checked : t.value; return; }
   if (k === 'secN'){
     var sec = t.dataset.sec, max = secMax(sec), v = parseInt(t.value, 10);
     if (isNaN(v)) v = 0;

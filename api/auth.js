@@ -30,7 +30,7 @@ async function recordEvent(kind, usernameLower, ip) {
 }
 
 function tooMany() { return httpError(429, 'Thử quá nhiều lần. Hãy đợi một lúc rồi thử lại.'); }
-function userView(row) { return { id: String(row.id), username: row.username, isAdmin: row.is_admin === true }; }
+function userView(row) { return { id: String(row.id), username: row.username, isAdmin: row.is_admin === true, canHsk: row.can_hsk === true }; }
 
 function readCredentials(body) {
   return {
@@ -52,7 +52,7 @@ async function register(req, res) {
   const hash = await hashPassword(password);
   const ins = await db.query(
     'insert into users (username, username_lower, password_hash) values ($1, $2, $3) ' +
-    'on conflict (username_lower) do nothing returning id, username, is_admin',
+    'on conflict (username_lower) do nothing returning id, username, is_admin, can_hsk',
     [username, username.toLowerCase(), hash]
   );
   if (!ins.rows[0]) throw httpError(409, 'Tên đăng nhập này đã có người dùng.');
@@ -71,7 +71,7 @@ async function login(req, res) {
   const c = await counts('login_fail', lower, ip, '15 minutes');
   if (c.by_user >= LIMITS.login_user || c.by_ip >= LIMITS.login_ip) throw tooMany();
 
-  const r = await db.query('select id, username, password_hash, is_admin, is_disabled from users where username_lower = $1', [lower]);
+  const r = await db.query('select id, username, password_hash, is_admin, is_disabled, can_hsk from users where username_lower = $1', [lower]);
   const row = r.rows[0];
   const ok = await verifyPassword(password, row ? row.password_hash : await getDummyHash());
   if (!row || !ok) {

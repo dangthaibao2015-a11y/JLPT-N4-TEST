@@ -8,6 +8,7 @@ create table if not exists users (
   password_hash   text        not null,
   is_admin        boolean     not null default false,
   is_disabled     boolean     not null default false,
+  can_hsk         boolean     not null default false,
   created_at      timestamptz not null default now(),
   last_login_at   timestamptz
 );
@@ -20,11 +21,6 @@ create table if not exists sessions (
 );
 create index if not exists sessions_user_idx    on sessions(user_id);
 create index if not exists sessions_expires_idx on sessions(expires_at);
-
-create table if not exists settings (
-  key   text primary key,
-  value text not null
-);
 
 create table if not exists auth_events (
   id              bigserial primary key,
@@ -41,6 +37,7 @@ create table if not exists exams (
   name_lower  text        not null unique,
   level       text        not null default '',
   data        jsonb       not null,
+  guest       boolean     not null default false,
   created_by  bigint      references users(id) on delete set null,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
@@ -67,5 +64,7 @@ create table if not exists attempts (
 create index if not exists attempts_user_idx on attempts(user_id, finished_at desc);
 create index if not exists attempts_time_idx on attempts(finished_at desc);
 
-delete from settings where key = 'class_code';
+alter table users add column if not exists can_hsk boolean not null default false;
+alter table exams add column if not exists guest boolean not null default false;
+
 `;

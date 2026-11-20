@@ -2,7 +2,10 @@
 // Kiểm tra và chuẩn hóa tệp đề (cùng quy tắc với trang web). Đáp án lưu theo số thứ tự bắt đầu từ 1.
 
 function normLevel(s) {
-  const m = String(s || '').toUpperCase().match(/N\s*([1-5])/);
+  const t = String(s || '').toUpperCase();
+  const h = t.match(/HSK\s*([1-6])/);
+  if (h) return 'HSK' + h[1];
+  const m = t.match(/N\s*([1-5])/);
   return m ? 'N' + m[1] : '';
 }
 

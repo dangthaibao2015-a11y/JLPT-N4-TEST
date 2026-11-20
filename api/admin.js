@@ -24,7 +24,7 @@ function idOf(v) {
 /* ---------- đề ---------- */
 async function examsList() {
   const r = await db.query(
-    "select e.id, e.name, e.level, e.updated_at, jsonb_array_length(e.data->'questions') as questions, " +
+    "select e.id, e.name, e.level, e.guest, e.updated_at, jsonb_array_length(e.data->'questions') as questions, " +
     "(select jsonb_agg(jsonb_build_object('section', s.sec, 'n', s.n) order by s.first) from " +
     "(select q->>'section' as sec, count(*)::int as n, min(ord) as first from jsonb_array_elements(e.data->'questions') with ordinality as t(q, ord) group by q->>'section') s) as sections " +
     'from exams e order by e.updated_at desc'
@@ -50,7 +50,7 @@ async function examSave(req, user) {
   const parsed = parseExams(data, typeof body.name === 'string' ? body.name.trim() : '');
   if (parsed.errors.length) { const e = httpError(400, 'Đề có lỗi, chưa lưu được.'); e.extra = { errors: parsed.errors.slice(0, 12) }; throw e; }
   if (!parsed.exams.length) throw httpError(400, 'Không có đề nào để lưu.');
-  const replace = body.replace === true;
+  const replace = body.replace === true, guest = body.guest === true;
   const names = parsed.exams.map(function (x) { return x.name.toLowerCase(); });
   const ex = await db.query('select name from exams where name_lower = any($1)', [names]);
   if (ex.rows.length && !replace) {
@@ -61,9 +61,9 @@ async function examSave(req, user) {
   const saved = [];
   for (const x of parsed.exams) {
     const r = await db.query(
-      'insert into exams (name, name_lower, level, data, created_by) values ($1, $2, $3, $4, $5) ' +
-      'on conflict (name_lower) do update set name = excluded.name, level = excluded.level, data = excluded.data, updated_at = now() returning id',
-      [x.name, x.name.toLowerCase(), x.level, JSON.stringify(x), user.id]
+      'insert into exams (name, name_lower, level, data, created_by, guest) values ($1, $2, $3, $4, $5, $6) ' +
+      'on conflict (name_lower) do update set name = excluded.name, level = excluded.level, data = excluded.data, guest = excluded.guest, updated_at = now() returning id',
+      [x.name, x.name.toLowerCase(), x.level, JSON.stringify(x), user.id, guest]
     );
     saved.push({ id: String(r.rows[0].id), name: x.name, questions: x.questions.length });
   }
@@ -80,8 +80,8 @@ async function examUpdate(req) {
   const dup = await db.query('select 1 from exams where name_lower = $1 and id <> $2', [name.toLowerCase(), id]);
   if (dup.rows.length) throw httpError(409, 'Đã có một đề trùng tên này.');
   const r = await db.query(
-    "update exams set name = $2, name_lower = $3, level = $4, data = jsonb_set(jsonb_set(data, '{name}', to_jsonb($2::text)), '{level}', to_jsonb($4::text)), updated_at = now() where id = $1 returning id",
-    [id, name, name.toLowerCase(), level]
+    "update exams set name = $2, name_lower = $3, level = $4, guest = coalesce($5, guest), data = jsonb_set(jsonb_set(data, '{name}', to_jsonb($2::text)), '{level}', to_jsonb($4::text)), updated_at = now() where id = $1 returning id",
+    [id, name, name.toLowerCase(), level, typeof body.guest === 'boolean' ? body.guest : null]
   );
   if (!r.rows[0]) throw httpError(404, 'Không tìm thấy đề này.');
   return { ok: true };
@@ -98,7 +98,7 @@ async function examDelete(req) {
 /* ---------- người dùng ---------- */
 async function usersList() {
   const r = await db.query(
-    'select u.id, u.username, u.is_admin, u.is_disabled, u.created_at, u.last_login_at, ' +
+    'select u.id, u.username, u.is_admin, u.is_disabled, u.can_hsk, u.created_at, u.last_login_at, ' +
     '(select count(*)::int from attempts a where a.user_id = u.id) as attempts from users u order by u.created_at desc limit 500'
   );
   return { users: r.rows.map(function (x) { return Object.assign({}, x, { id: String(x.id) }); }) };
@@ -143,6 +143,14 @@ async function userAdmin(req, admin) {
   return { ok: true };
 }
 
+async function userHsk(req) {
+  checkPost(req);
+  const body = await readJson(req);
+  const r = await db.query('update users set can_hsk = $2 where id = $1 returning id', [idOf(body.id), body.canHsk === true]);
+  if (!r.rows[0]) throw httpError(404, 'Không tìm thấy người dùng này.');
+  return { ok: true };
+}
+
 /* ---------- kết quả ---------- */
 async function results() {
   const r = await db.query(
@@ -157,7 +165,7 @@ module.exports = route(async function (req, res) {
   const admin = await requireAdmin(req, res);
   const action = new URL(req.url, 'http://x').searchParams.get('action');
   const get = { exams: examsList, exam_get: examGet, users: usersList, results: results };
-  const post = { exam_save: examSave, exam_update: examUpdate, exam_delete: examDelete, user_reset: userReset, user_disable: userDisable, user_admin: userAdmin };
+  const post = { exam_save: examSave, exam_update: examUpdate, exam_delete: examDelete, user_reset: userReset, user_disable: userDisable, user_admin: userAdmin, user_hsk: userHsk };
   if (get[action]) {
     if (req.method !== 'GET') throw httpError(405, 'Phương thức không được hỗ trợ.');
     return send(res, 200, await get[action](req, admin));

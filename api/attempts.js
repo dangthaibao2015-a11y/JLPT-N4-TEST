@@ -26,7 +26,7 @@ function validate(b) {
   });
   if (st !== total || sc !== correct) throw httpError(400, 'Điểm các phần không khớp với tổng.');
   const exams = (Array.isArray(b.exams) ? b.exams : []).slice(0, 20).map(function (x) { return text(x, 100); }).filter(Boolean);
-  const level = /^N[1-5]$/.test(String(b.level)) ? String(b.level) : '';
+  const level = /^(N[1-5]|HSK[1-6])$/.test(String(b.level)) ? String(b.level) : '';
   const started = new Date(b.startedAt);
   const ok = !isNaN(started) && started.getTime() > Date.now() - 3 * 86400000 && started.getTime() < Date.now() + 3600000;
   return {
@@ -40,6 +40,7 @@ async function save(req, res) {
   checkPost(req);
   const user = await requireUser(req, res);
   const a = validate(await readJson(req));
+  if (/^HSK/.test(a.level) && !user.canHsk && !user.isAdmin) throw httpError(403, 'Tài khoản này chưa được bật HSK.');
   const r = await db.query(
     'insert into attempts (user_id, client_id, level, exams, total, correct, wrong, blank, sections, duration_sec, limit_sec, auto_submitted, started_at) ' +
     'values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) on conflict (user_id, client_id) do nothing returning id',

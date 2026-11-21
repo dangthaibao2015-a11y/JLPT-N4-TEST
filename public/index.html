@@ -141,6 +141,18 @@ u{text-decoration-thickness:1.5px;text-underline-offset:4px}
 .ctext{font-size:1.15rem;line-height:1.6}
 .bubble{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--ink-2);display:grid;place-items:center;font-size:.85rem;font-weight:600;font-family:var(--ui);flex:none}
 .choice.on .bubble{background:var(--lead);color:var(--lead-ink);border-color:var(--lead)}
+.choice.right{border-color:var(--ok);background:var(--ok-bg)}
+.choice.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.choice.right .bubble{background:var(--ok);color:#0b1f15;border-color:var(--ok)}
+.choice.wrong .bubble{background:var(--bad);color:#2a0e0b;border-color:var(--bad)}
+.choice:disabled{cursor:default;opacity:1}
+.choice.locked:hover{border-color:var(--line)}
+.choice.right.locked:hover{border-color:var(--ok)}.choice.wrong.locked:hover{border-color:var(--bad)}
+.fb{margin-top:18px;padding:10px 14px;border-radius:6px;border:1.5px solid var(--line);font-size:.95rem}
+.fb.ok{border-color:var(--ok);background:var(--ok-bg)}
+.fb.bad{border-color:var(--bad);background:var(--bad-bg)}
+.fb.blank{border-color:var(--flag)}
+.fb strong{font-size:1.02rem}
 .qnav{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:26px;flex-wrap:wrap}
 .qnav .mid{display:flex;gap:8px}
 .kbd-hint{margin-top:14px;font-size:.82rem;color:var(--ink-2)}
@@ -441,7 +453,7 @@ var S = {
   hist: { loading: false, err: '', stats: null, items: null },
   acct: { msg: '', err: '', busy: false },
   adm: { tab: 'exams', loading: false, busy: false, err: '', exams: null, users: null, results: null, jsonIn: '', nameIn: '', errs: null, editing: null, editBuf: null, tempPw: null },
-  build: { level: '', selExams: {}, selSections: null, secCount: {}, shuffleQ: true, minutes: 0 },
+  build: { level: '', selExams: {}, selSections: null, secCount: {}, shuffleQ: true, instant: false, minutes: 0 },
   ex: null, timer: null
 };
 function selCount(o){ return Object.keys(o).filter(function(k){ return o[k]; }).length; }
@@ -648,6 +660,7 @@ function buildHTML(){
   });
   h += '</section><section class="field"><h2>Tùy chọn</h2>' +
     '<label class="check"><input type="checkbox" data-chg="shuffleQ"' + (b.shuffleQ ? ' checked' : '') + '><span>Xáo trộn thứ tự câu hỏi<br><span class="muted" style="font-size:.88rem">Các phần vẫn giữ thứ tự A, B, C và các câu cùng một bài đọc vẫn đi liền nhau. Nếu lấy ít hơn số câu có sẵn, web chọn ngẫu nhiên trong từng phần.</span></span></label>' +
+    '<label class="check"><input type="checkbox" data-chg="instant"' + (b.instant ? ' checked' : '') + '><span>Hiện đáp án ngay sau mỗi câu<br><span class="muted" style="font-size:.88rem">Chọn đáp án rồi bấm “Câu sau”: web hiện đúng hay sai trong 5 giây rồi tự chuyển câu, hoặc bạn bấm “Câu sau” lần nữa để chuyển ngay. Câu đã hiện đáp án sẽ bị khóa, không đổi được nữa.</span></span></label>' +
     '<div class="row" style="margin-top:14px"><label for="mins">Thời gian làm bài</label><input id="mins" class="num" type="number" min="0" max="300" value="' + b.minutes + '" data-chg="minutes"> <span class="muted">phút (0 là không giới hạn)</span></div></section>';
   h += '</div><aside class="summary" id="summary"></aside></div>';
   return h;
@@ -677,9 +690,31 @@ function makeItems(qs){
 }
 function startSession(items, opts){
   stopTimer();
-  S.ex = { items: items, answers: {}, flags: {}, idx: 0, start: Date.now(), end: null, limitSec: opts.minutes * 60, opts: opts, filter: 'all' };
+  S.ex = { items: items, answers: {}, flags: {}, idx: 0, start: Date.now(), end: null, limitSec: opts.minutes * 60, opts: opts, filter: 'all', revealed: {}, rv: null };
   S.view = 'exam'; render(); window.scrollTo(0, 0);
   S.timer = setInterval(tick, 1000);
+}
+var REVEAL_SEC = 5;
+function clearReveal(){ var ex = S.ex; if (ex && ex.rv){ clearInterval(ex.rv.t); ex.rv = null; } }
+function isRevealed(ex, i){ return !!(ex.opts && ex.opts.instant && ex.revealed[i]); }
+function reveal(){
+  var ex = S.ex, i = ex.idx, last = i === ex.items.length - 1;
+  clearReveal(); ex.revealed[i] = true;
+  if (!last){
+    ex.rv = { i: i, left: REVEAL_SEC, t: setInterval(function(){
+      var e = S.ex; if (!e || !e.rv || S.view !== 'exam'){ clearReveal(); return; }
+      e.rv.left--;
+      if (e.rv.left <= 0){ var at = e.rv.i; clearReveal(); if (e.idx === at) setIdx(at + 1); return; }
+      var c = $('#rvLeft'); if (c) c.textContent = e.rv.left;
+    }, 1000) };
+  }
+  renderQuestion(); renderSheet();
+}
+function goNext(){
+  var ex = S.ex, last = ex.idx === ex.items.length - 1;
+  if (ex.opts.instant && !ex.revealed[ex.idx]){ reveal(); return; }
+  if (last){ submit(); return; }
+  setIdx(ex.idx + 1);
 }
 function stopTimer(){ if (S.timer){ clearInterval(S.timer); S.timer = null; } }
 function tick(){
@@ -696,21 +731,29 @@ function renderTimer(){
 }
 function examShell(){ return '<div class="exam"><div id="qpane"></div><aside class="sheet" id="sheet" aria-label="Phiếu trả lời"></aside></div>'; }
 function renderQuestion(){
-  var ex = S.ex, it = ex.items[ex.idx], q = it.q, n = ex.items.length, chosen = ex.answers[ex.idx];
+  var ex = S.ex, it = ex.items[ex.idx], q = it.q, n = ex.items.length, chosen = ex.answers[ex.idx], rv = isRevealed(ex, ex.idx), counting = !!(ex.rv && ex.rv.i === ex.idx);
   var h = '<article class="qcard"><div class="qmeta"><span class="qno">Câu ' + (ex.idx + 1) + '/' + n + '</span><span>Phần ' + esc(q.section) + (q.sectionTitle ? ' <span lang="ja">（' + esc(q.sectionTitle) + '）</span>' : '') + '</span>' +
     (q.mondai ? '<span class="qmondai" lang="ja">' + esc(q.mondai) + '</span>' : '') + '</div>';
   if (q.instruction) h += '<p class="qins jp" lang="ja">' + rich(q.instruction) + '</p>';
   if (q.passage) h += '<div class="passage jp" lang="ja">' + rich(q.passage) + '</div>';
   h += '<p class="qtext jp" lang="ja">' + rich(q.text) + '</p><div class="choices" role="radiogroup" aria-label="Đáp án">';
   it.order.forEach(function(oi, pos){
-    var on = chosen === oi;
-    h += '<button type="button" role="radio" aria-checked="' + on + '" class="choice' + (on ? ' on' : '') + '" data-act="pick" data-oi="' + oi + '"><span class="bubble">' + (pos + 1) + '</span><span class="ctext jp" lang="ja">' + rich(q.choices[oi]) + '</span></button>';
+    var on = chosen === oi, cls = on ? ' on' : '';
+    if (rv){ cls = ' locked' + (oi === q.answer ? ' right' : (on ? ' wrong' : '')); }
+    h += '<button type="button" role="radio" aria-checked="' + on + '" class="choice' + cls + '"' + (rv ? ' aria-disabled="true"' : '') + ' data-act="pick" data-oi="' + oi + '"><span class="bubble">' + (pos + 1) + '</span><span class="ctext jp" lang="ja">' + rich(q.choices[oi]) + '</span></button>';
   });
   var fl = !!ex.flags[ex.idx];
-  h += '</div><div class="qnav"><button type="button" class="btn" data-act="prev"' + (ex.idx === 0 ? ' disabled' : '') + '>Câu trước</button>' +
+  h += '</div>';
+  if (rv){
+    var pos = it.order.indexOf(q.answer) + 1, st = chosen === undefined ? 'blank' : (chosen === q.answer ? 'ok' : 'bad');
+    h += '<div class="fb ' + st + '" role="status"><strong>' + (st === 'ok' ? 'Đúng rồi!' : st === 'bad' ? 'Chưa đúng.' : 'Bạn chưa chọn đáp án.') + '</strong>' + (st === 'ok' ? '' : ' Đáp án đúng là ' + pos + '.') +
+      (counting ? ' <span class="muted">Tự chuyển câu sau <span id="rvLeft">' + ex.rv.left + '</span> giây.</span>' : '') +
+      (q.explanation ? '<div class="expl">' + esc(q.explanation) + '</div>' : '') + '</div>';
+  }
+  h += '<div class="qnav"><button type="button" class="btn" data-act="prev"' + (ex.idx === 0 ? ' disabled' : '') + '>Câu trước</button>' +
     '<div class="mid"><button type="button" class="btn' + (fl ? ' flagged' : '') + '" data-act="flag" aria-pressed="' + fl + '">' + (fl ? 'Bỏ đánh dấu' : 'Đánh dấu xem lại') + '</button></div>' +
-    (ex.idx === n - 1 ? '<button type="button" class="btn primary" data-act="submit">Nộp bài</button>' : '<button type="button" class="btn primary" data-act="next">Câu sau</button>') +
-    '</div></article><p class="kbd-hint">Phím 1 đến 4 để chọn đáp án, phím mũi tên trái phải để chuyển câu, phím F để đánh dấu.</p>';
+    (ex.idx === n - 1 ? '<button type="button" class="btn primary" data-act="' + (ex.opts.instant && !rv ? 'next' : 'submit') + '">' + (ex.opts.instant && !rv ? 'Kiểm tra đáp án' : 'Nộp bài') + '</button>' : '<button type="button" class="btn primary" data-act="next">' + (ex.opts.instant && !rv ? 'Kiểm tra &amp; câu sau' : 'Câu sau') + '</button>') +
+    '</div></article><p class="kbd-hint">Phím 1 đến 4 để chọn đáp án, phím mũi tên trái phải để chuyển câu, phím F để đánh dấu.' + (ex.opts.instant ? ' Chế độ hiện đáp án ngay đang bật.' : '') + '</p>';
   $('#qpane').innerHTML = h;
 }
 function renderSheet(){
@@ -726,10 +769,11 @@ function renderSheet(){
 }
 function setIdx(i){
   var ex = S.ex; i = Math.max(0, Math.min(ex.items.length - 1, i));
-  ex.idx = i; renderQuestion(); renderSheet(); window.scrollTo(0, 0);
+  clearReveal(); ex.idx = i; renderQuestion(); renderSheet(); window.scrollTo(0, 0);
 }
 function pick(oi){
   var ex = S.ex;
+  if (isRevealed(ex, ex.idx)) return;
   if (ex.answers[ex.idx] === oi) delete ex.answers[ex.idx]; else ex.answers[ex.idx] = oi;
   renderQuestion(); renderSheet();
   var b = $('.choice[data-oi="' + oi + '"]'); if (b) b.focus({ preventScroll: true });
@@ -743,7 +787,7 @@ function submit(){
   ask({ title: 'Nộp bài?', body: left ? 'Còn ' + left + ' câu chưa chọn đáp án. Câu bỏ trống sẽ tính là sai.' : 'Bạn đã trả lời hết các câu.', ok: 'Nộp bài' }).then(function(v){ if (v) finish(false); });
 }
 function finish(auto){
-  stopTimer(); var ex = S.ex; ex.end = Date.now(); ex.filter = 'all'; ex.clientId = newId(); ex.auto = !!auto;
+  stopTimer(); clearReveal(); var ex = S.ex; ex.end = Date.now(); ex.filter = 'all'; ex.clientId = newId(); ex.auto = !!auto;
   S.view = 'result'; render(); window.scrollTo(0, 0);
   if (auto) toast('Hết giờ, bài đã được nộp tự động.');
   if (!S.guest) saveAttempt(ex);
@@ -1322,11 +1366,11 @@ var actions = {
   start: function(){
     var b = S.build, qs = pickQuestions();
     if (!qs.length){ toast('Chưa có câu hỏi nào phù hợp.'); return; }
-    startSession(makeItems(qs), { minutes: b.minutes });
+    startSession(makeItems(qs), { minutes: b.minutes, instant: !!b.instant });
   },
   pick: function(el){ pick(+el.dataset.oi); },
   prev: function(){ setIdx(S.ex.idx - 1); },
-  next: function(){ setIdx(S.ex.idx + 1); },
+  next: function(){ goNext(); },
   jump: function(el){ setIdx(+el.dataset.i); },
   flag: function(){ toggleFlag(); },
   submit: function(){ submit(); },
@@ -1451,6 +1495,7 @@ app.addEventListener('change', function(e){
     b.selSections[t.dataset.sec] = t.checked; render();
   }
   else if (k === 'shuffleQ'){ b.shuffleQ = t.checked; }
+  else if (k === 'instant'){ b.instant = t.checked; }
 });
 app.addEventListener('input', function(e){
   var t = e.target, k = t.dataset.chg, b = S.build;
@@ -1479,7 +1524,7 @@ document.addEventListener('keydown', function(e){
   if (e.target.matches('input,textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
   var ex = S.ex, it = ex.items[ex.idx];
   if (/^[1-9]$/.test(e.key)){ var pos = +e.key - 1; if (pos < it.order.length) pick(it.order[pos]); }
-  else if (e.key === 'ArrowRight') setIdx(ex.idx + 1);
+  else if (e.key === 'ArrowRight'){ if (ex.idx < ex.items.length - 1 || (ex.opts.instant && !ex.revealed[ex.idx])) goNext(); }
   else if (e.key === 'ArrowLeft') setIdx(ex.idx - 1);
   else if (e.key === 'f' || e.key === 'F') toggleFlag();
 });

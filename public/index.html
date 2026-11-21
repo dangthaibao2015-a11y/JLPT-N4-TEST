@@ -143,8 +143,9 @@ u{text-decoration-thickness:1.5px;text-underline-offset:4px}
 .choice.on .bubble{background:var(--lead);color:var(--lead-ink);border-color:var(--lead)}
 .choice.right{border-color:var(--ok);background:var(--ok-bg)}
 .choice.wrong{border-color:var(--bad);background:var(--bad-bg)}
-.choice.right .bubble{background:var(--ok);color:#0b1f15;border-color:var(--ok)}
-.choice.wrong .bubble{background:var(--bad);color:#2a0e0b;border-color:var(--bad)}
+.choice.locked{grid-template-columns:34px 1fr auto;color:var(--ink)}
+.choice .mark{font-size:.82rem;font-weight:600}
+.choice.right .mark{color:var(--ok)}.choice.wrong .mark{color:var(--bad)}
 .choice:disabled{cursor:default;opacity:1}
 .choice.locked:hover{border-color:var(--line)}
 .choice.right.locked:hover{border-color:var(--ok)}.choice.wrong.locked:hover{border-color:var(--bad)}
@@ -660,7 +661,7 @@ function buildHTML(){
   });
   h += '</section><section class="field"><h2>Tùy chọn</h2>' +
     '<label class="check"><input type="checkbox" data-chg="shuffleQ"' + (b.shuffleQ ? ' checked' : '') + '><span>Xáo trộn thứ tự câu hỏi<br><span class="muted" style="font-size:.88rem">Các phần vẫn giữ thứ tự A, B, C và các câu cùng một bài đọc vẫn đi liền nhau. Nếu lấy ít hơn số câu có sẵn, web chọn ngẫu nhiên trong từng phần.</span></span></label>' +
-    '<label class="check"><input type="checkbox" data-chg="instant"' + (b.instant ? ' checked' : '') + '><span>Hiện đáp án ngay sau mỗi câu<br><span class="muted" style="font-size:.88rem">Chọn đáp án rồi bấm “Câu sau”: web hiện đúng hay sai trong 5 giây rồi tự chuyển câu, hoặc bạn bấm “Câu sau” lần nữa để chuyển ngay. Câu đã hiện đáp án sẽ bị khóa, không đổi được nữa.</span></span></label>' +
+    '<label class="check"><input type="checkbox" data-chg="instant"' + (b.instant ? ' checked' : '') + '><span>Hiện đáp án ngay sau mỗi câu<br><span class="muted" style="font-size:.88rem">Chọn đáp án rồi bấm “Câu sau”: web hiện đúng hay sai trong 5 giây rồi tự chuyển câu, hoặc bạn bấm “Câu sau” lần nữa để chuyển ngay. Làm hết câu cuối thì web quay lại các câu sai, lặp đến khi đúng hết mới cho nộp bài (điểm vẫn tính theo lần làm đầu tiên). Câu đã hiện đáp án sẽ bị khóa.</span></span></label>' +
     '<div class="row" style="margin-top:14px"><label for="mins">Thời gian làm bài</label><input id="mins" class="num" type="number" min="0" max="300" value="' + b.minutes + '" data-chg="minutes"> <span class="muted">phút (0 là không giới hạn)</span></div></section>';
   h += '</div><aside class="summary" id="summary"></aside></div>';
   return h;
@@ -690,21 +691,44 @@ function makeItems(qs){
 }
 function startSession(items, opts){
   stopTimer();
-  S.ex = { items: items, answers: {}, flags: {}, idx: 0, start: Date.now(), end: null, limitSec: opts.minutes * 60, opts: opts, filter: 'all', revealed: {}, rv: null };
+  S.ex = { items: items, answers: {}, flags: {}, idx: 0, start: Date.now(), end: null, limitSec: opts.minutes * 60, opts: opts, filter: 'all', revealed: {}, rv: null, loop: null, first: null };
   S.view = 'exam'; render(); window.scrollTo(0, 0);
   S.timer = setInterval(tick, 1000);
 }
 var REVEAL_SEC = 5;
 function clearReveal(){ var ex = S.ex; if (ex && ex.rv){ clearInterval(ex.rv.t); ex.rv = null; } }
 function isRevealed(ex, i){ return !!(ex.opts && ex.opts.instant && ex.revealed[i]); }
+function badList(){ var ex = S.ex, out = []; ex.items.forEach(function(it, i){ if (statusOf(ex, i) !== 'right') out.push(i); }); return out; }
+/* Chế độ check: hết câu cuối thì quay lại các câu chưa đúng, lặp đến khi đúng hết */
+function nextTarget(){
+  var ex = S.ex, n = ex.items.length, lp = ex.loop;
+  if (!lp){
+    if (ex.idx < n - 1) return { type: 'idx', i: ex.idx + 1 };
+    return badList().length ? { type: 'round' } : { type: 'finish' };
+  }
+  var pend = lp.todo.filter(function(i){ return !ex.revealed[i]; });
+  if (pend.length){ var later = pend.filter(function(i){ return i > ex.idx; }); return { type: 'idx', i: later.length ? later[0] : pend[0] }; }
+  return lp.todo.length ? { type: 'round' } : { type: 'finish' };
+}
+function startRound(){
+  var ex = S.ex, lp = ex.loop;
+  if (!lp){ ex.first = Object.assign({}, ex.answers); lp = ex.loop = { todo: badList(), round: 0 }; }
+  lp.todo.sort(function(a, b){ return a - b; });
+  lp.todo.forEach(function(i){ delete ex.answers[i]; delete ex.revealed[i]; });
+  lp.round++;
+  toast('Vòng làm lại ' + lp.round + ': còn ' + lp.todo.length + ' câu chưa đúng.');
+  setIdx(lp.todo[0]);
+}
+function goTarget(t){ if (t.type === 'idx') setIdx(t.i); else if (t.type === 'round') startRound(); else submit(); }
 function reveal(){
-  var ex = S.ex, i = ex.idx, last = i === ex.items.length - 1;
+  var ex = S.ex, i = ex.idx;
   clearReveal(); ex.revealed[i] = true;
-  if (!last){
+  if (ex.loop && ex.answers[i] === ex.items[i].q.answer){ ex.loop.todo = ex.loop.todo.filter(function(x){ return x !== i; }); }
+  if (nextTarget().type !== 'finish'){
     ex.rv = { i: i, left: REVEAL_SEC, t: setInterval(function(){
       var e = S.ex; if (!e || !e.rv || S.view !== 'exam'){ clearReveal(); return; }
       e.rv.left--;
-      if (e.rv.left <= 0){ var at = e.rv.i; clearReveal(); if (e.idx === at) setIdx(at + 1); return; }
+      if (e.rv.left <= 0){ var at = e.rv.i; clearReveal(); if (e.idx === at) goTarget(nextTarget()); return; }
       var c = $('#rvLeft'); if (c) c.textContent = e.rv.left;
     }, 1000) };
   }
@@ -712,9 +736,9 @@ function reveal(){
 }
 function goNext(){
   var ex = S.ex, last = ex.idx === ex.items.length - 1;
-  if (ex.opts.instant && !ex.revealed[ex.idx]){ reveal(); return; }
-  if (last){ submit(); return; }
-  setIdx(ex.idx + 1);
+  if (!ex.opts.instant){ if (last) submit(); else setIdx(ex.idx + 1); return; }
+  if (!ex.revealed[ex.idx]){ reveal(); return; }
+  goTarget(nextTarget());
 }
 function stopTimer(){ if (S.timer){ clearInterval(S.timer); S.timer = null; } }
 function tick(){
@@ -733,26 +757,29 @@ function examShell(){ return '<div class="exam"><div id="qpane"></div><aside cla
 function renderQuestion(){
   var ex = S.ex, it = ex.items[ex.idx], q = it.q, n = ex.items.length, chosen = ex.answers[ex.idx], rv = isRevealed(ex, ex.idx), counting = !!(ex.rv && ex.rv.i === ex.idx);
   var h = '<article class="qcard"><div class="qmeta"><span class="qno">Câu ' + (ex.idx + 1) + '/' + n + '</span><span>Phần ' + esc(q.section) + (q.sectionTitle ? ' <span lang="ja">（' + esc(q.sectionTitle) + '）</span>' : '') + '</span>' +
-    (q.mondai ? '<span class="qmondai" lang="ja">' + esc(q.mondai) + '</span>' : '') + '</div>';
+    (q.mondai ? '<span class="qmondai" lang="ja">' + esc(q.mondai) + '</span>' : '') + (ex.loop ? '<span class="qmondai">Vòng làm lại ' + ex.loop.round + ', còn ' + ex.loop.todo.length + ' câu chưa đúng</span>' : '') + '</div>';
   if (q.instruction) h += '<p class="qins jp" lang="ja">' + rich(q.instruction) + '</p>';
   if (q.passage) h += '<div class="passage jp" lang="ja">' + rich(q.passage) + '</div>';
   h += '<p class="qtext jp" lang="ja">' + rich(q.text) + '</p><div class="choices" role="radiogroup" aria-label="Đáp án">';
   it.order.forEach(function(oi, pos){
     var on = chosen === oi, cls = on ? ' on' : '';
     if (rv){ cls = ' locked' + (oi === q.answer ? ' right' : (on ? ' wrong' : '')); }
-    h += '<button type="button" role="radio" aria-checked="' + on + '" class="choice' + cls + '"' + (rv ? ' aria-disabled="true"' : '') + ' data-act="pick" data-oi="' + oi + '"><span class="bubble">' + (pos + 1) + '</span><span class="ctext jp" lang="ja">' + rich(q.choices[oi]) + '</span></button>';
+    h += '<button type="button" role="radio" aria-checked="' + on + '" class="choice' + cls + '"' + (rv ? ' aria-disabled="true"' : '') + ' data-act="pick" data-oi="' + oi + '"><span class="bubble">' + (pos + 1) + '</span><span class="ctext jp" lang="ja">' + rich(q.choices[oi]) + '</span>' + (rv ? '<span class="mark">' + (oi === q.answer ? (on ? 'Bạn chọn, đúng' : 'Đáp án đúng') : (on ? 'Bạn đã chọn' : '')) + '</span>' : '') + '</button>';
   });
-  var fl = !!ex.flags[ex.idx];
+  var fl = !!ex.flags[ex.idx], pb, pbtn = function(a, t){ return '<button type="button" class="btn primary" data-act="' + a + '">' + t + '</button>'; };
+  if (!ex.opts.instant) pb = ex.idx === n - 1 ? pbtn('submit', 'Nộp bài') : pbtn('next', 'Câu sau');
+  else if (!rv) pb = pbtn('next', ex.idx === n - 1 && !ex.loop ? 'Kiểm tra đáp án' : 'Kiểm tra &amp; câu sau');
+  else { var tg0 = nextTarget(); pb = tg0.type === 'finish' ? pbtn('submit', 'Nộp bài') : pbtn('next', tg0.type === 'round' ? 'Làm lại câu sai' : 'Câu sau'); }
   h += '</div>';
   if (rv){
     var pos = it.order.indexOf(q.answer) + 1, st = chosen === undefined ? 'blank' : (chosen === q.answer ? 'ok' : 'bad');
-    h += '<div class="fb ' + st + '" role="status"><strong>' + (st === 'ok' ? 'Đúng rồi!' : st === 'bad' ? 'Chưa đúng.' : 'Bạn chưa chọn đáp án.') + '</strong>' + (st === 'ok' ? '' : ' Đáp án đúng là ' + pos + '.') +
-      (counting ? ' <span class="muted">Tự chuyển câu sau <span id="rvLeft">' + ex.rv.left + '</span> giây.</span>' : '') +
-      (q.explanation ? '<div class="expl">' + esc(q.explanation) + '</div>' : '') + '</div>';
+    h += '<div class="fb ' + st + '" role="status"><strong>' + (st === 'ok' ? 'Đúng rồi!' : st === 'bad' ? 'Chưa đúng.' : 'Bạn chưa chọn đáp án.') + '</strong>' + (st === 'ok' ? '' : ' Đáp án đúng là ' + pos + '. Câu này sẽ quay lại để làm sau.') +
+      (counting ? ' <span class="muted">' + (nextTarget().type === 'round' ? 'Tự chuyển sang làm lại các câu chưa đúng sau ' : 'Tự chuyển câu sau ') + '<span id="rvLeft">' + ex.rv.left + '</span> giây.</span>' : '') +
+      (q.explanation ? '<div class="expl">' + esc(q.explanation) + '</div>' : '<div class="expl muted">Câu này chưa có giải thích trong đề.</div>') + '</div>';
   }
   h += '<div class="qnav"><button type="button" class="btn" data-act="prev"' + (ex.idx === 0 ? ' disabled' : '') + '>Câu trước</button>' +
     '<div class="mid"><button type="button" class="btn' + (fl ? ' flagged' : '') + '" data-act="flag" aria-pressed="' + fl + '">' + (fl ? 'Bỏ đánh dấu' : 'Đánh dấu xem lại') + '</button></div>' +
-    (ex.idx === n - 1 ? '<button type="button" class="btn primary" data-act="' + (ex.opts.instant && !rv ? 'next' : 'submit') + '">' + (ex.opts.instant && !rv ? 'Kiểm tra đáp án' : 'Nộp bài') + '</button>' : '<button type="button" class="btn primary" data-act="next">' + (ex.opts.instant && !rv ? 'Kiểm tra &amp; câu sau' : 'Câu sau') + '</button>') +
+    pb +
     '</div></article><p class="kbd-hint">Phím 1 đến 4 để chọn đáp án, phím mũi tên trái phải để chuyển câu, phím F để đánh dấu.' + (ex.opts.instant ? ' Chế độ hiện đáp án ngay đang bật.' : '') + '</p>';
   $('#qpane').innerHTML = h;
 }
@@ -787,7 +814,7 @@ function submit(){
   ask({ title: 'Nộp bài?', body: left ? 'Còn ' + left + ' câu chưa chọn đáp án. Câu bỏ trống sẽ tính là sai.' : 'Bạn đã trả lời hết các câu.', ok: 'Nộp bài' }).then(function(v){ if (v) finish(false); });
 }
 function finish(auto){
-  stopTimer(); clearReveal(); var ex = S.ex; ex.end = Date.now(); ex.filter = 'all'; ex.clientId = newId(); ex.auto = !!auto;
+  stopTimer(); clearReveal(); var ex = S.ex; if (ex.first) ex.answers = ex.first; ex.end = Date.now(); ex.filter = 'all'; ex.clientId = newId(); ex.auto = !!auto;
   S.view = 'result'; render(); window.scrollTo(0, 0);
   if (auto) toast('Hết giờ, bài đã được nộp tự động.');
   if (!S.guest) saveAttempt(ex);
@@ -811,14 +838,14 @@ function grade(ex){
 function resultHTML(){
   var ex = S.ex, g = grade(ex), n = ex.items.length, pct = Math.round(g.right / n * 100), used = Math.round((ex.end - ex.start) / 1000);
   var h = '<h1 class="page-title">Kết quả</h1><div class="score"><div><span class="big">' + g.right + '</span><span class="of"> / ' + n + '</span></div>' +
-    '<div class="facts"><span><strong>' + pct + '%</strong> câu đúng</span><span>Đúng ' + g.right + ', sai ' + g.wrong + ', bỏ trống ' + g.blank + '</span><span>Thời gian làm bài: ' + fmt(used) + '</span></div></div>';
+    '<div class="facts"><span><strong>' + pct + '%</strong> câu đúng</span><span>Đúng ' + g.right + ', sai ' + g.wrong + ', bỏ trống ' + g.blank + '</span><span>Thời gian làm bài: ' + fmt(used) + '</span>' + (ex.loop ? '<span>Số vòng làm lại: ' + ex.loop.round + ' (điểm tính theo lần làm đầu tiên)</span>' : '') + '</div></div>';
   h += saveLineHTML(ex);
   h += '<section class="block"><h2>Theo từng phần</h2>';
   g.secs.forEach(function(s){
     h += '<div class="secrow"><span>Phần ' + esc(s.section) + (s.title ? ' <span class="muted" lang="ja">' + esc(s.title) + '</span>' : '') + '</span><div class="track"><div class="fill" style="width:' + Math.round(s.r / s.n * 100) + '%"></div></div><span>' + s.r + '/' + s.n + '</span></div>';
   });
   h += '</section><div class="actions"><button type="button" class="btn primary" data-act="retryAll">Làm lại bài này</button>' +
-    ((g.wrong + g.blank) ? '<button type="button" class="btn" data-act="retryWrong">Chỉ làm lại câu sai và bỏ trống</button>' : '') +
+    ((g.wrong + g.blank) ? '<button type="button" class="btn" data-act="retryWrong">Chỉ làm lại câu sai và bỏ trống (hiện đáp án ngay)</button>' : '') +
     '<button type="button" class="btn quiet" data-act="go" data-view="build">Tạo bài thi khác</button><button type="button" class="btn quiet" data-act="go" data-view="history">Xem lịch sử</button></div>';
   h += '<div class="review-bar"><h2 style="font-size:1.1rem">Xem lại đáp án</h2><div class="seg" role="group" aria-label="Lọc câu"><button type="button" data-act="filter" data-f="all" aria-pressed="' + (ex.filter === 'all') + '">Tất cả</button><button type="button" data-act="filter" data-f="bad" aria-pressed="' + (ex.filter === 'bad') + '">Câu sai và bỏ trống</button></div></div>';
   var shown = 0;
@@ -1382,7 +1409,7 @@ var actions = {
   retryAll: function(){ var ex = S.ex; startSession(makeItems(ex.items.map(function(i){ return i.q; })), ex.opts); },
   retryWrong: function(){
     var ex = S.ex, qs = ex.items.filter(function(it, i){ return statusOf(ex, i) !== 'right'; }).map(function(i){ return i.q; });
-    startSession(makeItems(qs), { minutes: 0 });
+    startSession(makeItems(qs), { minutes: 0, instant: true });
   },
   filter: function(el){ S.ex.filter = el.dataset.f; render(); },
   bankLv: function(el){ S.bankLv = el.dataset.lv; render(); },
@@ -1524,7 +1551,7 @@ document.addEventListener('keydown', function(e){
   if (e.target.matches('input,textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
   var ex = S.ex, it = ex.items[ex.idx];
   if (/^[1-9]$/.test(e.key)){ var pos = +e.key - 1; if (pos < it.order.length) pick(it.order[pos]); }
-  else if (e.key === 'ArrowRight'){ if (ex.idx < ex.items.length - 1 || (ex.opts.instant && !ex.revealed[ex.idx])) goNext(); }
+  else if (e.key === 'ArrowRight'){ if (ex.opts.instant ? (!ex.revealed[ex.idx] || nextTarget().type !== 'finish') : ex.idx < ex.items.length - 1) goNext(); }
   else if (e.key === 'ArrowLeft') setIdx(ex.idx - 1);
   else if (e.key === 'f' || e.key === 'F') toggleFlag();
 });

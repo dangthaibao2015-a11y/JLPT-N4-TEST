@@ -43,7 +43,7 @@ async function currentUser(req, res) {
   const token = parseCookies(req.headers.cookie)[COOKIE];
   if (!token) return null;
   const r = await db.query(
-    "select u.id, u.username, u.is_admin, u.is_disabled, u.can_hsk, (s.expires_at < now() + interval '15 days') as renew " +
+    "select u.id, u.username, u.is_admin, u.is_disabled, u.can_hsk, u.can_korean, (s.expires_at < now() + interval '15 days') as renew " +
     'from sessions s join users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > now()',
     [sha(token)]
   );
@@ -53,7 +53,7 @@ async function currentUser(req, res) {
     await db.query("update sessions set expires_at = now() + ($2 || ' days')::interval where token_hash = $1", [sha(token), String(LIFETIME_DAYS)]);
     setCookie(req, res, token, LIFETIME_DAYS * DAY);
   }
-  return { id: String(row.id), username: row.username, isAdmin: row.is_admin === true, canHsk: row.can_hsk === true };
+  return { id: String(row.id), username: row.username, isAdmin: row.is_admin === true, canHsk: row.can_hsk === true, canKorean: row.can_korean === true };
 }
 
 async function destroySession(req, res) {

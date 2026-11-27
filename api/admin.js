@@ -98,7 +98,7 @@ async function examDelete(req) {
 /* ---------- người dùng ---------- */
 async function usersList() {
   const r = await db.query(
-    'select u.id, u.username, u.is_admin, u.is_disabled, u.can_hsk, u.created_at, u.last_login_at, ' +
+    'select u.id, u.username, u.is_admin, u.is_disabled, u.can_hsk, u.can_korean, u.created_at, u.last_login_at, ' +
     '(select count(*)::int from attempts a where a.user_id = u.id) as attempts from users u order by u.created_at desc limit 500'
   );
   return { users: r.rows.map(function (x) { return Object.assign({}, x, { id: String(x.id) }); }) };
@@ -143,6 +143,14 @@ async function userAdmin(req, admin) {
   return { ok: true };
 }
 
+async function userKorean(req) {
+  checkPost(req);
+  const body = await readJson(req);
+  const r = await db.query('update users set can_korean = $2 where id = $1 returning id', [idOf(body.id), body.canKorean === true]);
+  if (!r.rows[0]) throw httpError(404, 'Không tìm thấy người dùng này.');
+  return { ok: true };
+}
+
 async function userHsk(req) {
   checkPost(req);
   const body = await readJson(req);
@@ -165,7 +173,7 @@ module.exports = route(async function (req, res) {
   const admin = await requireAdmin(req, res);
   const action = new URL(req.url, 'http://x').searchParams.get('action');
   const get = { exams: examsList, exam_get: examGet, users: usersList, results: results };
-  const post = { exam_save: examSave, exam_update: examUpdate, exam_delete: examDelete, user_reset: userReset, user_disable: userDisable, user_admin: userAdmin, user_hsk: userHsk };
+  const post = { exam_save: examSave, exam_update: examUpdate, exam_delete: examDelete, user_reset: userReset, user_disable: userDisable, user_admin: userAdmin, user_hsk: userHsk, user_korean: userKorean };
   if (get[action]) {
     if (req.method !== 'GET') throw httpError(405, 'Phương thức không được hỗ trợ.');
     return send(res, 200, await get[action](req, admin));

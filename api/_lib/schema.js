@@ -9,6 +9,7 @@ create table if not exists users (
   is_admin        boolean     not null default false,
   is_disabled     boolean     not null default false,
   can_hsk         boolean     not null default false,
+  can_korean      boolean     not null default false,
   created_at      timestamptz not null default now(),
   last_login_at   timestamptz
 );
@@ -65,6 +66,7 @@ create index if not exists attempts_user_idx on attempts(user_id, finished_at de
 create index if not exists attempts_time_idx on attempts(finished_at desc);
 
 alter table users add column if not exists can_hsk boolean not null default false;
+alter table users add column if not exists can_korean boolean not null default false;
 alter table exams add column if not exists guest boolean not null default false;
 
 `;

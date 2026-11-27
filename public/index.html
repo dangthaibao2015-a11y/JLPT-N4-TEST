@@ -323,6 +323,7 @@ textarea.fld{resize:vertical;line-height:1.7}
 .admlist .exam-meta{font-size:.84rem;margin-top:1px}
 .admlist .exam-actions .btn{padding:4px 10px;font-size:.88rem}
 .btn.quiet.dng{color:var(--bad)}
+.jp[lang="ko"],.kana[lang="ko"],[lang="ko"]{font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo','Noto Sans KR',sans-serif}
 /* dialog + toast */
 .scrim{position:fixed;inset:0;background:rgba(10,14,22,.55);display:grid;place-items:center;z-index:50;padding:20px}
 .dlg{background:var(--card);border:1px solid var(--ink);border-radius:6px;padding:24px;max-width:420px;width:100%}
@@ -1179,7 +1180,7 @@ function admExamRow(e){
   }
   return '<li class="exam-row"><div class="exam-head"><div><div class="exam-title"><h3>' + esc(e.name) + '</h3>' + (normLevel(e.level) ? '<span class="lvl">' + esc(e.level) + '</span>' : '') + '</div>' +
     '<p class="exam-meta">' + e.questions + ' câu. ' + (e.sections || []).map(function(s){ return 'Phần ' + esc(s.section) + ': ' + s.n; }).join(', ') + '.</p></div>' +
-    '<div class="exam-actions"><button type="button" class="btn quiet" data-act="admEdit" data-id="' + e.id + '" title="Sửa tên, cấp">Sửa</button><button type="button" class="btn quiet" data-act="admDownload" data-id="' + e.id + '">Tải JSON</button><button type="button" class="btn quiet dng" data-act="admDelete" data-id="' + e.id + '">Xóa</button></div></div></li>';
+    '<div class="exam-actions"><button type="button" class="btn" data-act="admEdit" data-id="' + e.id + '" title="Sửa tên, cấp">Sửa</button><button type="button" class="btn" data-act="admDownload" data-id="' + e.id + '">Tải JSON</button><button type="button" class="btn danger" data-act="admDelete" data-id="' + e.id + '">Xóa</button></div></div></li>';
 }
 function admListHTML(){
   var A = S.adm, list = A.exams || [], q = (A.q || '').trim().toLowerCase();
@@ -1229,9 +1230,9 @@ function admUsersHTML(){
     '<p class="muted" style="margin:8px 0 0">Gửi mật khẩu này cho học viên. Họ đăng nhập rồi đổi ở mục Tài khoản. Mật khẩu chỉ hiện một lần, đóng đi là không xem lại được.</p></div>';
   h += '<ul class="exam-list">' + (A.users || []).map(function(u){
     var me = u.id === S.user.id;
-    return '<li class="exam-row"><div class="exam-head"><div><div class="exam-title"><h3>' + esc(u.username) + '</h3>' + (u.is_admin ? '<span class="badge ai">Admin</span>' : '') + (u.can_hsk ? '<span class="badge pdf">HSK</span>' : '') + (u.is_disabled ? '<span class="badge warn">Đã khóa</span>' : '') + (me ? '<span class="muted">(bạn)</span>' : '') + '</div>' +
+    return '<li class="exam-row"><div class="exam-head"><div><div class="exam-title"><h3>' + esc(u.username) + '</h3>' + (u.is_admin ? '<span class="badge ai">Admin</span>' : '') + (u.can_hsk ? '<span class="badge pdf">HSK</span>' : '') + (u.can_korean ? '<span class="badge manual">Hàn</span>' : '') + (u.is_disabled ? '<span class="badge warn">Đã khóa</span>' : '') + (me ? '<span class="muted">(bạn)</span>' : '') + '</div>' +
       '<p class="exam-meta">Tạo ' + esc(fmtDate(u.created_at)) + '. Đăng nhập gần nhất: ' + (u.last_login_at ? esc(fmtDate(u.last_login_at)) : 'chưa lần nào') + '. ' + u.attempts + ' lần làm bài.</p></div>' +
-      '<div class="exam-actions"><button type="button" class="btn" data-act="admHsk" data-id="' + u.id + '">' + (u.can_hsk ? 'Gỡ quyền HSK' : 'Cấp quyền HSK') + '</button>' + (me ? '' : '<button type="button" class="btn" data-act="admReset" data-id="' + u.id + '">Đặt lại mật khẩu</button><button type="button" class="btn" data-act="admDisable" data-id="' + u.id + '">' + (u.is_disabled ? 'Mở khóa' : 'Khóa') + '</button><button type="button" class="btn" data-act="admAdmin" data-id="' + u.id + '">' + (u.is_admin ? 'Gỡ quyền admin' : 'Cấp quyền admin') + '</button>') + '</div></div></li>';
+      '<div class="exam-actions"><button type="button" class="btn" data-act="admHsk" data-id="' + u.id + '">' + (u.can_hsk ? 'Gỡ quyền HSK' : 'Cấp quyền HSK') + '</button><button type="button" class="btn" data-act="admKorean" data-id="' + u.id + '">' + (u.can_korean ? 'Gỡ quyền tiếng Hàn' : 'Cấp quyền tiếng Hàn') + '</button>' + (me ? '' : '<button type="button" class="btn" data-act="admReset" data-id="' + u.id + '">Đặt lại mật khẩu</button><button type="button" class="btn" data-act="admDisable" data-id="' + u.id + '">' + (u.is_disabled ? 'Mở khóa' : 'Khóa') + '</button><button type="button" class="btn" data-act="admAdmin" data-id="' + u.id + '">' + (u.is_admin ? 'Gỡ quyền admin' : 'Cấp quyền admin') + '</button>') + '</div></div></li>';
   }).join('') + '</ul>';
   return h;
 }
@@ -1272,16 +1273,53 @@ var KANA_ROWS = (function(){
   });
 })();
 var KANA_GROUPS = [['basic', 'Cơ bản'], ['dakuten', 'Đục và bán đục'], ['combo', 'Âm ghép']];
+var HAN_GROUPS = [['hcons', 'Phụ âm'], ['hdbl', 'Phụ âm đôi'], ['hvow', 'Nguyên âm'], ['hcomp', 'Nguyên âm ghép'], ['hsyl', 'Âm tiết (phụ âm + nguyên âm)']];
+var HAN_ROWS = (function(){
+  var def = [
+    ['hcons', 'ㄱ=g/k,ㄴ=n,ㄷ=d/t,ㄹ=r/l'], ['hcons', 'ㅁ=m,ㅂ=b/p,ㅅ=s,ㅇ=ng'], ['hcons', 'ㅈ=j,ㅊ=ch,ㅋ=k/kh,ㅌ=t/th'], ['hcons', 'ㅍ=p/ph,ㅎ=h'],
+    ['hdbl', 'ㄲ=kk/gg,ㄸ=tt/dd,ㅃ=pp/bb,ㅆ=ss,ㅉ=jj'],
+    ['hvow', 'ㅏ=a,ㅑ=ya,ㅓ=eo,ㅕ=yeo,ㅗ=o'], ['hvow', 'ㅛ=yo,ㅜ=u,ㅠ=yu,ㅡ=eu,ㅣ=i'],
+    ['hcomp', 'ㅐ=ae,ㅒ=yae,ㅔ=e,ㅖ=ye'], ['hcomp', 'ㅘ=wa,ㅙ=wae,ㅚ=oe'], ['hcomp', 'ㅝ=wo,ㅞ=we,ㅟ=wi,ㅢ=ui']
+  ];
+  var rows = def.map(function(d, i){
+    return { id: 'h' + i, g: d[0], items: d[1].split(',').map(function(x){ var a = x.split('='); return [a[0], a[1].split('/')]; }) };
+  });
+  var inits = [['ㄱ', 0, ['g', 'k']], ['ㄴ', 2, ['n']], ['ㄷ', 3, ['d', 't']], ['ㄹ', 5, ['r', 'l']], ['ㅁ', 6, ['m']], ['ㅂ', 7, ['b', 'p']], ['ㅅ', 9, ['s']],
+    ['ㅇ', 11, ['']], ['ㅈ', 12, ['j']], ['ㅊ', 14, ['ch']], ['ㅋ', 15, ['k', 'kh']], ['ㅌ', 16, ['t', 'th']], ['ㅍ', 17, ['p', 'ph']], ['ㅎ', 18, ['h']],
+    ['ㄲ', 1, ['kk', 'gg']], ['ㄸ', 4, ['tt', 'dd']], ['ㅃ', 8, ['pp', 'bb']], ['ㅆ', 10, ['ss']], ['ㅉ', 13, ['jj']]];
+  var vows = [[0, 'a'], [2, 'ya'], [4, 'eo'], [6, 'yeo'], [8, 'o'], [12, 'yo'], [13, 'u'], [17, 'yu'], [18, 'eu'], [20, 'i']];
+  var sh = { ya: 'sha', yo: 'sho', yu: 'shu', i: 'shi' };
+  inits.forEach(function(it, k){
+    rows.push({ id: 'hs' + k, g: 'hsyl', items: vows.map(function(v){
+      var ans = [];
+      it[2].forEach(function(c){ ans.push(c + v[1]); });
+      if (it[0] === 'ㅅ' && sh[v[1]]) ans.push(sh[v[1]]);
+      return [String.fromCharCode(0xAC00 + (it[1] * 21 + v[0]) * 28), ans];
+    }) });
+  });
+  return rows;
+})();
 function toKata(t){ return t.replace(/[\u3041-\u3096]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) + 0x60); }); }
+function canKorean(){ return !!(S.user && (S.user.canKorean || S.user.isAdmin)); }
 function kst(){
   if (!S.kana){
     var rows = {};
     KANA_ROWS.forEach(function(r){ if (r.g === 'basic') rows[r.id] = true; });
-    S.kana = { cfg: { script: 'hira', rows: rows, order: 'seq', count: 20 }, run: null };
+    var hrows = {};
+    HAN_ROWS.forEach(function(r){ if (r.g === 'hcons' || r.g === 'hvow') hrows[r.id] = true; });
+    S.kana = { cfg: { script: 'hira', rows: rows, hrows: hrows, order: 'seq', count: 20 }, run: null };
   }
   return S.kana;
 }
 function kanaPool(cfg){
+  if (cfg.script === 'hangul'){
+    var o = [];
+    HAN_ROWS.forEach(function(r){
+      if (!cfg.hrows[r.id]) return;
+      r.items.forEach(function(it){ o.push({ id: 'hangul:' + it[0], ch: it[0], sc: 'hangul', ans: it[1] }); });
+    });
+    return o;
+  }
   var out = [], scripts = cfg.script === 'both' ? ['hira', 'kata'] : [cfg.script];
   scripts.forEach(function(sc){
     KANA_ROWS.forEach(function(r){
@@ -1340,15 +1378,18 @@ function kanaRowLabel(r){
   return kst().cfg.script === 'kata' ? toKata(t) : t;
 }
 function kanaSetupHTML(){
-  var c = kst().cfg, pool = kanaPool(c);
-  var h = '<h1 class="page-title">Học chữ</h1><p class="lede">Hiện một chữ Hiragana hoặc Katakana, bạn gõ cách đọc bằng chữ Latin (ví dụ あ gõ <strong>a</strong>). Không cần bàn phím tiếng Nhật.</p>';
-  h += '<section class="field"><h2>Bộ chữ</h2><div class="chips" role="group" aria-label="Bộ chữ">' + [['hira', 'Hiragana'], ['kata', 'Katakana'], ['both', 'Cả hai']].map(function(x){
+  var c = kst().cfg;
+  if (c.script === 'hangul' && !canKorean()) c.script = 'hira';
+  var pool = kanaPool(c);
+  var h = '<h1 class="page-title">Học chữ</h1><p class="lede">Hiện một chữ Hiragana, Katakana hoặc Hangul (tiếng Hàn), bạn gõ cách đọc bằng chữ Latin (ví dụ あ gõ <strong>a</strong>, 가 gõ <strong>ga</strong>). Không cần bàn phím tiếng Nhật hay tiếng Hàn.</p>';
+  h += '<section class="field"><h2>Bộ chữ</h2><div class="chips" role="group" aria-label="Bộ chữ">' + [['hira', 'Hiragana'], ['kata', 'Katakana'], ['both', 'Hiragana và Katakana']].concat(canKorean() ? [['hangul', 'Hangul (tiếng Hàn)']] : []).map(function(x){
     return '<button type="button" class="chip" data-act="kanaScript" data-v="' + x[0] + '" aria-pressed="' + (c.script === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></section>';
-  h += '<section class="field"><h2>Chọn hàng chữ</h2><p class="hint">Bấm tên nhóm để chọn hoặc bỏ cả nhóm, bấm từng hàng để chọn riêng.</p>';
-  KANA_GROUPS.forEach(function(g){
-    var rows = KANA_ROWS.filter(function(r){ return r.g === g[0]; }), all = rows.every(function(r){ return c.rows[r.id]; });
+  h += '<section class="field"><h2>Chọn hàng chữ</h2><p class="hint">' + (c.script === 'hangul' ? 'Ví dụ: ㄱ gõ g (hoặc k), ㅓ gõ eo, ㅡ gõ eu, 가 gõ ga. ' : '') + 'Bấm tên nhóm để chọn hoặc bỏ cả nhóm, bấm từng hàng để chọn riêng.</p>';
+  var hg = c.script === 'hangul', GR = hg ? HAN_GROUPS : KANA_GROUPS, RS = hg ? HAN_ROWS : KANA_ROWS, SEL = hg ? c.hrows : c.rows;
+  GR.forEach(function(g){
+    var rows = RS.filter(function(r){ return r.g === g[0]; }), all = rows.every(function(r){ return SEL[r.id]; });
     h += '<div class="kgroup"><button type="button" class="btn quiet" data-act="kanaGroup" data-g="' + g[0] + '" aria-pressed="' + all + '">' + (all ? 'Bỏ chọn ' : 'Chọn cả ') + g[1].toLowerCase() + '</button><div class="chips">' +
-      rows.map(function(r){ return '<button type="button" class="chip jp" lang="ja" data-act="kanaRow" data-r="' + r.id + '" aria-pressed="' + (!!c.rows[r.id]) + '">' + esc(kanaRowLabel(r)) + '</button>'; }).join('') + '</div></div>';
+      rows.map(function(r){ return '<button type="button" class="chip jp" lang="' + (hg ? 'ko' : 'ja') + '" data-act="kanaRow" data-r="' + r.id + '" aria-pressed="' + (!!SEL[r.id]) + '">' + esc(kanaRowLabel(r)) + '</button>'; }).join('') + '</div></div>';
   });
   h += '</section><section class="field"><h2>Thứ tự</h2><div class="chips" role="group" aria-label="Thứ tự">' + [['seq', 'Theo bảng chữ'], ['rand', 'Ngẫu nhiên']].map(function(x){
     return '<button type="button" class="chip" data-act="kanaOrder" data-v="' + x[0] + '" aria-pressed="' + (c.order === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></section>';
@@ -1360,9 +1401,9 @@ function kanaSetupHTML(){
 }
 function kanaRunHTML(r){
   var it = r.queue[r.pos], ok = r.state === 'ok', bad = r.state === 'wrong';
-  var h = '<div class="kana-card"><div class="kana-top"><span class="badge manual">' + (it.sc === 'kata' ? 'Katakana' : 'Hiragana') + '</span><span class="muted">Chữ ' + Math.min(r.seenCount + (r.seen[it.id] ? 0 : 1), r.total) + '/' + r.total + '</span></div>' +
+  var h = '<div class="kana-card"><div class="kana-top"><span class="badge manual">' + (it.sc === 'kata' ? 'Katakana' : it.sc === 'hangul' ? 'Hangul' : 'Hiragana') + '</span><span class="muted">Chữ ' + Math.min(r.seenCount + (r.seen[it.id] ? 0 : 1), r.total) + '/' + r.total + '</span></div>' +
     '<div class="track" style="margin:10px 0 0"><div class="fill" style="width:' + Math.round(r.seenCount / r.total * 100) + '%"></div></div>' +
-    '<div class="kana" lang="ja">' + esc(it.ch) + '</div>';
+    '<div class="kana" lang="' + (it.sc === 'hangul' ? 'ko' : 'ja') + '">' + esc(it.ch) + '</div>';
   if (bad) h += '<p class="kfb bad" role="status">Sai rồi. Cách đọc đúng: <strong>' + esc(it.ans[0]) + '</strong>' + (it.ans.length > 1 ? ' (hoặc ' + esc(it.ans.slice(1).join(', ')) + ')' : '') + '</p><p class="muted" style="margin:0 0 8px">Gõ lại cách đọc đúng để nhớ.</p>' + (r.msg ? '<p class="kfb bad" role="status">' + esc(r.msg) + '</p>' : '');
   else if (ok) h += '<p class="kfb ok" role="status">Đúng rồi: <strong>' + esc(it.ans[0]) + '</strong></p>';
   else h += '<p class="muted" style="margin:0 0 8px">Gõ cách đọc của chữ này</p>';
@@ -1375,7 +1416,7 @@ function kanaDoneHTML(r){
   var h = '<h1 class="page-title">Xong rồi</h1>', n = r.total;
   h += '<div class="stats"><div class="stat"><b>' + r.correct + '/' + n + '</b><span>Đúng ngay lần đầu</span></div><div class="stat"><b>' + pct(r.correct, n) + '%</b><span>Tỉ lệ đúng</span></div><div class="stat"><b>' + fmt((r.end - r.start) / 1000) + '</b><span>Thời gian</span></div></div>';
   if (r.wrongList.length){
-    h += '<section class="block"><h2>Các chữ chưa đúng</h2><div class="kwrong">' + r.wrongList.map(function(it){ return '<span class="kw"><span class="jp" lang="ja">' + esc(it.ch) + '</span><small>' + esc(it.ans[0]) + '</small></span>'; }).join('') + '</div></section>';
+    h += '<section class="block"><h2>Các chữ chưa đúng</h2><div class="kwrong">' + r.wrongList.map(function(it){ return '<span class="kw"><span class="jp" lang="' + (it.sc === 'hangul' ? 'ko' : 'ja') + '">' + esc(it.ch) + '</span><small>' + esc(it.ans[0]) + '</small></span>'; }).join('') + '</div></section>';
   } else h += '<p class="savebar ok">Không sai chữ nào.</p>';
   h += '<div class="actions">' + (r.wrongList.length ? '<button type="button" class="btn primary" data-act="kanaRetryWrong">Luyện lại các chữ sai</button>' : '') +
     '<button type="button" class="btn' + (r.wrongList.length ? '' : ' primary') + '" data-act="kanaAgain">Làm lại lượt này</button><button type="button" class="btn quiet" data-act="kanaSetup">Chọn bộ chữ khác</button></div>';
@@ -1496,12 +1537,13 @@ var actions = {
   },
   admCopyPw: function(){ if (S.adm.tempPw) copyText(S.adm.tempPw.password, 'Đã sao chép mật khẩu tạm.'); },
   admClosePw: function(){ S.adm.tempPw = null; render(); },
-  kanaScript: function(el){ kst().cfg.script = el.dataset.v; render(); },
+  kanaScript: function(el){ if (el.dataset.v === 'hangul' && !canKorean()) return; kst().cfg.script = el.dataset.v; render(); },
   kanaGroup: function(el){
-    var c = kst().cfg, rows = KANA_ROWS.filter(function(r){ return r.g === el.dataset.g; }), all = rows.every(function(r){ return c.rows[r.id]; });
-    rows.forEach(function(r){ if (all) delete c.rows[r.id]; else c.rows[r.id] = true; }); render();
+    var c = kst().cfg, hg = c.script === 'hangul', SEL = hg ? c.hrows : c.rows;
+    var rows = (hg ? HAN_ROWS : KANA_ROWS).filter(function(r){ return r.g === el.dataset.g; }), all = rows.every(function(r){ return SEL[r.id]; });
+    rows.forEach(function(r){ if (all) delete SEL[r.id]; else SEL[r.id] = true; }); render();
   },
-  kanaRow: function(el){ var c = kst().cfg; if (c.rows[el.dataset.r]) delete c.rows[el.dataset.r]; else c.rows[el.dataset.r] = true; render(); },
+  kanaRow: function(el){ var c = kst().cfg, SEL = c.script === 'hangul' ? c.hrows : c.rows; if (SEL[el.dataset.r]) delete SEL[el.dataset.r]; else SEL[el.dataset.r] = true; render(); },
   kanaOrder: function(el){ kst().cfg.order = el.dataset.v; render(); },
   kanaCount: function(el){ kst().cfg.count = +el.dataset.v; render(); },
   kanaStart: function(){ var c = kst().cfg, pool = kanaPool(c); if (!pool.length) return; kanaStart(pool, c); render(); },
@@ -1517,6 +1559,14 @@ var actions = {
     S.mode = m; S.bankLv = 'all'; S.build.level = ''; S.build.selExams = {}; S.build.selSections = null; S.build.secCount = {};
     if (m === 'hsk' && S.view === 'kana') S.view = 'bank';
     applyMode(); render();
+  },
+  admKorean: function(el){
+    var u = (S.adm.users || []).filter(function(x){ return x.id === el.dataset.id; })[0]; if (!u) return;
+    admRun(async function(){
+      await admPost('user_korean', { id: u.id, canKorean: !u.can_korean });
+      if (u.id === S.user.id) S.user.canKorean = !u.can_korean;
+      S.adm.users = (await api('GET', '/api/admin?action=users')).users; toast(u.can_korean ? 'Đã gỡ quyền tiếng Hàn.' : 'Đã cấp quyền tiếng Hàn.');
+    });
   },
   admHsk: function(el){
     var u = (S.adm.users || []).filter(function(x){ return x.id === el.dataset.id; })[0]; if (!u) return;

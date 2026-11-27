@@ -454,7 +454,7 @@ var S = {
   hist: { loading: false, err: '', stats: null, items: null },
   acct: { msg: '', err: '', busy: false },
   adm: { tab: 'exams', loading: false, busy: false, err: '', exams: null, users: null, results: null, jsonIn: '', nameIn: '', errs: null, editing: null, editBuf: null, tempPw: null },
-  build: { level: '', selExams: {}, selSections: null, secCount: {}, shuffleQ: true, instant: false, minutes: 0 },
+  build: { level: '', selExams: {}, selSections: null, secCount: {}, shuffleQ: true, instant: false, instantSec: 5, minutes: 0 },
   ex: null, timer: null
 };
 function selCount(o){ return Object.keys(o).filter(function(k){ return o[k]; }).length; }
@@ -661,7 +661,8 @@ function buildHTML(){
   });
   h += '</section><section class="field"><h2>Tùy chọn</h2>' +
     '<label class="check"><input type="checkbox" data-chg="shuffleQ"' + (b.shuffleQ ? ' checked' : '') + '><span>Xáo trộn thứ tự câu hỏi<br><span class="muted" style="font-size:.88rem">Các phần vẫn giữ thứ tự A, B, C và các câu cùng một bài đọc vẫn đi liền nhau. Nếu lấy ít hơn số câu có sẵn, web chọn ngẫu nhiên trong từng phần.</span></span></label>' +
-    '<label class="check"><input type="checkbox" data-chg="instant"' + (b.instant ? ' checked' : '') + '><span>Hiện đáp án ngay sau mỗi câu<br><span class="muted" style="font-size:.88rem">Chọn đáp án rồi bấm “Câu sau”: web hiện đúng hay sai trong 5 giây rồi tự chuyển câu, hoặc bạn bấm “Câu sau” lần nữa để chuyển ngay. Làm hết câu cuối thì web quay lại các câu sai, lặp đến khi đúng hết mới cho nộp bài (điểm vẫn tính theo lần làm đầu tiên). Câu đã hiện đáp án sẽ bị khóa.</span></span></label>' +
+    '<label class="check"><input type="checkbox" data-chg="instant"' + (b.instant ? ' checked' : '') + '><span>Hiện đáp án ngay sau mỗi câu<br><span class="muted" style="font-size:.88rem">Chọn đáp án rồi bấm “Câu sau”: web hiện đúng hay sai, rồi tự chuyển câu sau số giây đặt ở ô bên dưới (đặt 0 thì không tự chuyển), hoặc bạn bấm “Câu sau” lần nữa để chuyển ngay. Làm hết câu cuối thì web quay lại các câu sai, lặp đến khi đúng hết mới cho nộp bài (điểm vẫn tính theo lần làm đầu tiên). Câu đã hiện đáp án sẽ bị khóa.</span></span></label>' +
+    '<div class="row" style="margin:-4px 0 12px 30px"><label for="isec">Tự chuyển câu sau</label><input id="isec" class="num" type="number" min="0" max="120" value="' + b.instantSec + '" data-chg="instantSec"' + (b.instant ? '' : ' disabled') + '> <span class="muted">giây (0 là không tự chuyển, bạn tự bấm “Câu sau”)</span></div>' +
     '<div class="row" style="margin-top:14px"><label for="mins">Thời gian làm bài</label><input id="mins" class="num" type="number" min="0" max="300" value="' + b.minutes + '" data-chg="minutes"> <span class="muted">phút (0 là không giới hạn)</span></div></section>';
   h += '</div><aside class="summary" id="summary"></aside></div>';
   return h;
@@ -724,8 +725,9 @@ function reveal(){
   var ex = S.ex, i = ex.idx;
   clearReveal(); ex.revealed[i] = true;
   if (ex.loop && ex.answers[i] === ex.items[i].q.answer){ ex.loop.todo = ex.loop.todo.filter(function(x){ return x !== i; }); }
-  if (nextTarget().type !== 'finish'){
-    ex.rv = { i: i, left: REVEAL_SEC, t: setInterval(function(){
+  var sec = ex.opts.instantSec === undefined ? REVEAL_SEC : ex.opts.instantSec;   // 0 = không tự chuyển
+  if (sec > 0 && nextTarget().type !== 'finish'){
+    ex.rv = { i: i, left: sec, t: setInterval(function(){
       var e = S.ex; if (!e || !e.rv || S.view !== 'exam'){ clearReveal(); return; }
       e.rv.left--;
       if (e.rv.left <= 0){ var at = e.rv.i; clearReveal(); if (e.idx === at) goTarget(nextTarget()); return; }
@@ -1393,7 +1395,7 @@ var actions = {
   start: function(){
     var b = S.build, qs = pickQuestions();
     if (!qs.length){ toast('Chưa có câu hỏi nào phù hợp.'); return; }
-    startSession(makeItems(qs), { minutes: b.minutes, instant: !!b.instant });
+    startSession(makeItems(qs), { minutes: b.minutes, instant: !!b.instant, instantSec: b.instantSec });
   },
   pick: function(el){ pick(+el.dataset.oi); },
   prev: function(){ setIdx(S.ex.idx - 1); },
@@ -1409,7 +1411,7 @@ var actions = {
   retryAll: function(){ var ex = S.ex; startSession(makeItems(ex.items.map(function(i){ return i.q; })), ex.opts); },
   retryWrong: function(){
     var ex = S.ex, qs = ex.items.filter(function(it, i){ return statusOf(ex, i) !== 'right'; }).map(function(i){ return i.q; });
-    startSession(makeItems(qs), { minutes: 0, instant: true });
+    startSession(makeItems(qs), { minutes: 0, instant: true, instantSec: ex.opts.instantSec });
   },
   filter: function(el){ S.ex.filter = el.dataset.f; render(); },
   bankLv: function(el){ S.bankLv = el.dataset.lv; render(); },
@@ -1522,7 +1524,8 @@ app.addEventListener('change', function(e){
     b.selSections[t.dataset.sec] = t.checked; render();
   }
   else if (k === 'shuffleQ'){ b.shuffleQ = t.checked; }
-  else if (k === 'instant'){ b.instant = t.checked; }
+  else if (k === 'instant'){ b.instant = t.checked; var si = $('#isec'); if (si) si.disabled = !t.checked; }
+  else if (k === 'instantSec'){ t.value = b.instantSec; }
 });
 app.addEventListener('input', function(e){
   var t = e.target, k = t.dataset.chg, b = S.build;
@@ -1536,6 +1539,7 @@ app.addEventListener('input', function(e){
     if (v < 0){ v = 0; t.value = 0; }
     b.secCount[sec] = v; updateSummary();
   }
+  else if (k === 'instantSec'){ b.instantSec = Math.min(120, Math.max(0, parseInt(t.value, 10) || 0)); }
   else if (k === 'minutes'){ b.minutes = Math.max(0, parseInt(t.value, 10) || 0); updateSummary(); }
 });
 app.addEventListener('submit', function(e){
